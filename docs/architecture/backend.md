@@ -76,13 +76,37 @@ Markdown や TeX の最終レンダリングは Frontend の責務とし、Backe
   - `POST /auth/token/refresh`
   - `POST /auth/logout`
 - Workspace API
-  - workspace 一覧、詳細、作成、更新
+  - `GET /workspaces/`
+  - `POST /workspaces/`
+  - `GET /workspaces/{id}/`
+  - `PATCH /workspaces/{id}/`
 - Channel API
-  - channel 一覧、作成、更新
+  - `GET /channels/?workspace_id={workspace_id}`
+  - `POST /channels/`
+  - `GET /channels/{id}/`
+  - `PATCH /channels/{id}/`
 - Message API
-  - message 一覧、投稿
+  - `GET /messages/?channel_id={channel_id}`
+  - `POST /messages/`
 - Macro API
-  - macro 一覧、取得、更新
+  - `GET /macros/`
+  - `GET /macros/?effective=true&workspace_id={workspace_id}`
+  - `GET /macros/?effective=true&channel_id={channel_id}`
+  - `POST /macros/`
+  - `PATCH /macros/{id}/`
+
+MVP の payload は以下を前提にします。
+
+- Workspace
+  - `name`, `description`, `member_ids`
+- Channel
+  - `workspace_id`, `name`, `topic`
+- Message
+  - `channel_id`, `body`
+- MacroDefinition
+  - `name`, `definition`, `scope`, `workspace_id`, `channel_id`
+
+macro の `effective=true` は Frontend がそのまま利用できる解決済み一覧を返し、優先順位は `channel > workspace > global` とします。
 
 DRF では以下を分離します。
 
@@ -94,6 +118,12 @@ DRF では以下を分離します。
 Bootstrap 段階の DRF 既定 permission は `IsAuthenticated` とし、公開 endpoint は `healthz` と Discord OAuth の開始 / callback のみを個別に許可します。
 
 refresh token を `HttpOnly` cookie で扱う前提の `POST /auth/token/refresh` と `POST /auth/logout` は、access token なしでも到達できる endpoint として個別に許可します。
+
+MVP の最低限の権限制御は以下です。
+
+- workspace member は workspace / channel / message / scoped macro を参照できる
+- workspace owner は workspace 更新、channel 更新、workspace / channel macro 更新を行える
+- global macro の更新は staff user に限定する
 
 ## Local Development
 
