@@ -33,6 +33,8 @@ Markdown や TeX の最終レンダリングは Frontend の責務とし、Backe
 - `macros`
   - global / workspace / channel macro の取得と更新
 
+配置先は `backend/` を既定とし、Poetry 関連ファイルはこのディレクトリ直下に置きます。Django app は `backend/apps/` 配下に配置する前提とします。
+
 ## Domain Model
 
 主要エンティティは以下です。
