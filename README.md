@@ -48,6 +48,8 @@ npm install
 ```bash
 cd backend
 poetry install
+poetry run python manage.py migrate
+poetry run python manage.py runserver
 ```
 
 ## Local Development Flow
@@ -60,4 +62,4 @@ poetry install
 
 ## Current Bootstrap Status
 
-この issue ではモノレポの配置規約と開発導線のみを整えています。React SPA 本体、Django / DRF 本体、Terraform の実リソース定義は後続 issue で追加します。
+現在は Django / DRF の基盤と PostgreSQL 接続設定までを導入済みです。Discord OAuth2、JWT、各ドメインの永続化モデルと業務ロジックは後続 issue で追加します。

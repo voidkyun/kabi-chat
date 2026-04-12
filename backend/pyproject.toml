@@ -4,7 +4,11 @@ version = "0.1.0"
 description = "Kabi Chat backend workspace"
 authors = [{ name = "voidkyun" }]
 requires-python = ">=3.12,<4.0"
-dependencies = []
+dependencies = [
+    "django>=5.2.0,<6.0.0",
+    "djangorestframework>=3.16.0,<4.0.0",
+    "psycopg[binary]>=3.2.0,<4.0.0",
+]
 
 [tool.poetry]
 package-mode = false
