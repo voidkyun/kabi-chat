@@ -27,9 +27,8 @@ MVP の実装詳細は `docs/architecture/backend.md` と `docs/architecture/aut
 ## Local Run
 
 ```bash
-poetry install
-python manage.py migrate
-python manage.py runserver
+cd ..
+docker compose up --build app db
 ```
 
-Compose 起動時は app コンテナが `migrate --noinput` を実行してから `runserver` を立ち上げます。`.env` がない場合でも `POSTGRES_*` 系の既定値で PostgreSQL 接続設定を解決します。
+Compose 起動時は app コンテナが `migrate --noinput` を実行してから `runserver` を立ち上げます。Django の管理コマンドを手動で実行する場合は、ルートディレクトリで `docker compose exec app python manage.py <command>` を利用してください。`.env` がない場合でも `POSTGRES_*` 系の既定値で PostgreSQL 接続設定を解決します。

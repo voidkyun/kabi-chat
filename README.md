@@ -30,11 +30,13 @@ markdown, tex をサポートする軽量なチャットツールです。Fronte
 cp .env.example .env
 ```
 
-### 2. ローカル依存サービスを起動する
+### 2. Backend を Compose で起動する
 
 ```bash
-docker compose up -d db
+docker compose up --build app db
 ```
+
+app コンテナが起動時に `python manage.py migrate --noinput` を実行してから `runserver` を立ち上げます。Django の管理コマンドを手動で実行したい場合は、ルートで `docker compose exec app python manage.py <command>` を利用します。
 
 ### 3. Frontend の依存関係を導入する
 
@@ -43,20 +45,11 @@ cd frontend
 npm install
 ```
 
-### 4. Backend の依存関係を導入する
-
-```bash
-cd backend
-poetry install
-poetry run python manage.py migrate
-poetry run python manage.py runserver
-```
-
 ## Local Development Flow
 
 - Frontend 実装は `frontend/` 配下で進めます
 - Backend 実装は `backend/` 配下で進めます
-- ローカル DB はルート `docker-compose.yml` で管理します
+- Backend とローカル DB はルート `docker-compose.yml` で管理します
 - Infrastructure は `infra/terraform/` 配下で `dev` / `prod` を分離します
 - 詳細な実装責務は `docs/architecture/*.md` を参照します
 
