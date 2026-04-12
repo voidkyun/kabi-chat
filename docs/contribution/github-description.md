@@ -1,5 +1,7 @@
 # GitHubのIssue, PullRequestにおけるDescriptionの書き方
 
+## 共通
+
 **常に日本語で書く**
 
 ## Issue
