@@ -44,14 +44,10 @@ class CurrentUserView(APIView):
 
 
 class TokenRefreshView(APIView):
-    permission_classes = [AllowAny]
-
     def post(self, request):
         return Response({"detail": "JWT refresh is not implemented yet."}, status=501)
 
 
 class LogoutView(APIView):
-    permission_classes = [AllowAny]
-
     def post(self, request):
         return Response({"detail": "Logout is not implemented yet."}, status=501)
