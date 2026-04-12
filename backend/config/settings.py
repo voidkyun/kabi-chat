@@ -107,11 +107,23 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+JWT_SIGNING_KEY = os.getenv("JWT_SIGNING_KEY", "replace-me")
+AUTH_ACCESS_TOKEN_LIFETIME_SECONDS = int(os.getenv("AUTH_ACCESS_TOKEN_LIFETIME_SECONDS", "900"))
+AUTH_REFRESH_TOKEN_LIFETIME_DAYS = int(os.getenv("AUTH_REFRESH_TOKEN_LIFETIME_DAYS", "14"))
+AUTH_REFRESH_TOKEN_COOKIE_NAME = os.getenv("AUTH_REFRESH_TOKEN_COOKIE_NAME", "kabi_chat_refresh_token")
+AUTH_OAUTH_STATE_COOKIE_NAME = os.getenv("AUTH_OAUTH_STATE_COOKIE_NAME", "kabi_chat_oauth_state")
+AUTH_OAUTH_STATE_MAX_AGE_SECONDS = int(os.getenv("AUTH_OAUTH_STATE_MAX_AGE_SECONDS", "300"))
+AUTH_COOKIE_SECURE = env_bool("AUTH_COOKIE_SECURE", default=not DEBUG)
+AUTH_COOKIE_SAMESITE = os.getenv("AUTH_COOKIE_SAMESITE", "Lax")
+AUTH_COOKIE_DOMAIN = os.getenv("AUTH_COOKIE_DOMAIN") or None
+AUTH_COOKIE_PATH = os.getenv("AUTH_COOKIE_PATH", "/")
+
 REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
     "DEFAULT_AUTHENTICATION_CLASSES": [
+        "apps.auth.authentication.JWTAuthentication",
         "rest_framework.authentication.SessionAuthentication",
         "rest_framework.authentication.BasicAuthentication",
     ],

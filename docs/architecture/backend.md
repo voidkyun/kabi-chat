@@ -43,6 +43,7 @@ Markdown や TeX の最終レンダリングは Frontend の責務とし、Backe
 
 - Discord account と紐づくアプリケーション利用者
 - 表示名、アイコン URL、Discord 識別子を保持する
+- Django 標準 user と auth app の profile により管理する
 
 ### Workspace
 
@@ -104,6 +105,8 @@ refresh token を `HttpOnly` cookie で扱う前提の `POST /auth/token/refresh
   - PostgreSQL
 
 必要に応じて reverse proxy や mail mock は後続で追加可能としますが、MVP 必須には含めません。
+
+Backend の `python` 実行はホストではなく app コンテナ経由を前提とします。`manage.py` や `pytest` は `docker compose exec app ...` で実行します。
 
 ## Non-Functional Concerns
 

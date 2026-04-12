@@ -19,7 +19,9 @@
 - access token は短命とする
 - refresh token は長命とする
 - access token は Frontend のメモリ保持を既定とする
-- refresh token は `HttpOnly`, `Secure`, `SameSite=Lax` cookie で保持する
+- refresh token は `HttpOnly`, `SameSite=Lax` cookie で保持する
+- 本番では refresh token cookie を `Secure` にする
+- 開発環境では `AUTH_COOKIE_SECURE=0` により非 HTTPS でも疎通できるようにする
 
 refresh は `POST /auth/token/refresh` で行い、logout は `POST /auth/logout` で refresh token を無効化します。
 
@@ -53,16 +55,36 @@ MVP の認可境界は以下を前提とします。
 
 これらは Frontend から識別可能な HTTP ステータスとエラーレスポンスで返す前提とします。
 
+実装では `{"error": "<code>", "detail": "<message>"}` を共通のエラー形式とします。
+
+- Discord 側で認可拒否された
+  - `400` / `discord_access_denied`
+- callback の `state` が一致しない
+  - `400` / `invalid_state`
+- 認可コードが無効または期限切れ
+  - `400` / `invalid_authorization_code`
+- access token の期限切れ
+  - `401` / `access_token_expired`
+- refresh token が無効、失効、改ざんされている
+  - `401` / `invalid_refresh_token`
+- refresh token cookie が欠落している
+  - `401` / `missing_refresh_token`
+
 ## Public Interfaces
 
 - `GET /auth/discord/login`
   - Discord 認証開始
+  - `provider`, `authorization_url`, `state` を返す
 - `GET /auth/discord/callback`
   - Discord callback を受けてログイン完了
+  - `access_token`, `token_type`, `expires_in`, `user` を返す
+  - refresh token は cookie に設定する
 - `GET /auth/me`
   - 現在ユーザー情報を返す
+  - `Authorization: Bearer <access_token>` を前提とする
 - `POST /auth/token/refresh`
   - refresh token により access token を再発行する
+  - refresh token rotation を行う
 - `POST /auth/logout`
   - refresh token を失効させる
 

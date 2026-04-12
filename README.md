@@ -57,4 +57,4 @@ npm install
 
 ## Current Bootstrap Status
 
-現在は Django / DRF の基盤と PostgreSQL 接続設定までを導入済みです。Discord OAuth2、JWT、各ドメインの永続化モデルと業務ロジックは後続 issue で追加します。
+現在は Django / DRF 基盤に加えて、Discord OAuth2 + JWT の認証 API 骨格を導入済みです。`GET /auth/discord/login`、`GET /auth/discord/callback`、`GET /auth/me`、`POST /auth/token/refresh`、`POST /auth/logout` が利用でき、refresh token は cookie で管理します。
