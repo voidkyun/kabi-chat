@@ -1,4 +1,31 @@
 services:
+  app:
+    build:
+      context: ./backend
+    container_name: kabi-chat-app
+    environment:
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-1}
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-replace-me}
+      POSTGRES_HOST: db
+      POSTGRES_DB: ${POSTGRES_DB:-kabi_chat}
+      POSTGRES_USER: ${POSTGRES_USER:-kabi_chat}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-kabi_chat}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://kabi_chat:kabi_chat@db:5432/kabi_chat}
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:-replace-me}
+      DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET:-replace-me}
+      DISCORD_REDIRECT_URI: ${DISCORD_REDIRECT_URI:-http://localhost:8000/auth/discord/callback}
+      JWT_SIGNING_KEY: ${JWT_SIGNING_KEY:-replace-me}
+    entrypoint: ["sh", "/app/entrypoint.sh"]
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
   db:
     image: postgres:16-alpine
     container_name: kabi-chat-db

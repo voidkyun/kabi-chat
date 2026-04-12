@@ -16,3 +16,21 @@
   - macro の取得、更新
 
 MVP の実装詳細は `docs/architecture/backend.md` と `docs/architecture/auth.md` を参照してください。
+
+## Bootstrap Status
+
+- Django project: `config/`
+- Django apps: `apps/auth/`, `apps/workspaces/`, `apps/channels/`, `apps/messages/`, `apps/macros/`
+- Entrypoint: `manage.py`
+- Health check: `GET /healthz/`
+
+## Local Run
+
+```bash
+cd ..
+docker compose up --build app db
+```
+
+Compose 起動時は app コンテナが `migrate --noinput` を実行してから `runserver` を立ち上げます。Django の管理コマンドを手動で実行する場合は、ルートディレクトリで `docker compose exec app python manage.py <command>` を利用してください。`.env` がない場合でも `POSTGRES_*` 系の既定値で PostgreSQL 接続設定を解決します。
+
+テストはルートディレクトリで `docker compose exec app pytest` を利用します。
