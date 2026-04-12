@@ -1,0 +1,14 @@
+[project]
+name = "kabi-chat-backend"
+version = "0.1.0"
+description = "Kabi Chat backend workspace"
+authors = [{ name = "voidkyun" }]
+requires-python = ">=3.12,<4.0"
+dependencies = []
+
+[tool.poetry]
+package-mode = false
+
+[build-system]
+requires = ["poetry-core>=1.9.0"]
+build-backend = "poetry.core.masonry.api"
