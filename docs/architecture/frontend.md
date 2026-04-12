@@ -76,6 +76,8 @@ Frontend の状態は以下に分離します。
   - form
   - renderer
 
+配置先は `frontend/` を既定とし、npm 関連ファイルはこのディレクトリ直下に置きます。
+
 ## Extension Points
 
 - WebSocket による message push 配信

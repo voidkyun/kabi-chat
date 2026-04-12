@@ -1,0 +1,24 @@
+.DS_Store
+.env
+.env.local
+
+# Node / frontend
+frontend/node_modules/
+frontend/dist/
+
+# Python / backend
+backend/.venv/
+backend/__pycache__/
+backend/.pytest_cache/
+backend/.mypy_cache/
+backend/**/*.pyc
+
+# Terraform / infra
+infra/terraform/.terraform/
+infra/terraform/**/*.tfstate
+infra/terraform/**/*.tfstate.*
+infra/terraform/**/*.tfplan
+
+# Editor / IDE
+.idea/
+.vscode/

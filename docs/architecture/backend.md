@@ -33,6 +33,8 @@ Markdown や TeX の最終レンダリングは Frontend の責務とし、Backe
 - `macros`
   - global / workspace / channel macro の取得と更新
 
+配置先は `backend/` を既定とし、Poetry 関連ファイルはこのディレクトリ直下に置きます。Django app は `backend/apps/` 配下に配置する前提とします。
+
 ## Domain Model
 
 主要エンティティは以下です。
@@ -41,6 +43,7 @@ Markdown や TeX の最終レンダリングは Frontend の責務とし、Backe
 
 - Discord account と紐づくアプリケーション利用者
 - 表示名、アイコン URL、Discord 識別子を保持する
+- Django 標準 user と auth app の profile により管理する
 
 ### Workspace
 
@@ -88,6 +91,10 @@ DRF では以下を分離します。
 - Permission: workspace / macro の操作可否
 - Service layer or domain helper: Discord 認証や token 発行などの業務ロジック
 
+Bootstrap 段階の DRF 既定 permission は `IsAuthenticated` とし、公開 endpoint は `healthz` と Discord OAuth の開始 / callback のみを個別に許可します。
+
+refresh token を `HttpOnly` cookie で扱う前提の `POST /auth/token/refresh` と `POST /auth/logout` は、access token なしでも到達できる endpoint として個別に許可します。
+
 ## Local Development
 
 ローカル環境は Docker Compose で構成します。
@@ -98,6 +105,8 @@ DRF では以下を分離します。
   - PostgreSQL
 
 必要に応じて reverse proxy や mail mock は後続で追加可能としますが、MVP 必須には含めません。
+
+Backend の `python` 実行はホストではなく app コンテナ経由を前提とします。`manage.py` や `pytest` は `docker compose exec app ...` で実行します。
 
 ## Non-Functional Concerns
 
