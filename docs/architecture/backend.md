@@ -90,7 +90,9 @@ DRF では以下を分離します。
 - Permission: workspace / macro の操作可否
 - Service layer or domain helper: Discord 認証や token 発行などの業務ロジック
 
-Bootstrap 段階の DRF 既定 permission は `IsAuthenticated` とし、匿名公開する endpoint は `healthz` と Discord OAuth の開始 / callback のみを個別に許可します。
+Bootstrap 段階の DRF 既定 permission は `IsAuthenticated` とし、公開 endpoint は `healthz` と Discord OAuth の開始 / callback のみを個別に許可します。
+
+refresh token を `HttpOnly` cookie で扱う前提の `POST /auth/token/refresh` と `POST /auth/logout` は、access token なしでも到達できる endpoint として個別に許可します。
 
 ## Local Development
 

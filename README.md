@@ -38,6 +38,8 @@ docker compose up --build app db
 
 app コンテナが起動時に `python manage.py migrate --noinput` を実行してから `runserver` を立ち上げます。Django の管理コマンドを手動で実行したい場合は、ルートで `docker compose exec app python manage.py <command>` を利用します。
 
+テストはルートで `docker compose exec app pytest` を利用します。
+
 ### 3. Frontend の依存関係を導入する
 
 ```bash

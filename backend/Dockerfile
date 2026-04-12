@@ -13,7 +13,7 @@ RUN apt-get update \
     && pip install "poetry==$POETRY_VERSION"
 
 COPY pyproject.toml README.md ./
-RUN poetry install --no-interaction --no-ansi
+RUN poetry install --with dev --no-interaction --no-ansi
 
 COPY . .
 RUN chmod +x /app/entrypoint.sh

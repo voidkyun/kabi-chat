@@ -23,6 +23,8 @@
 
 refresh は `POST /auth/token/refresh` で行い、logout は `POST /auth/logout` で refresh token を無効化します。
 
+この 2 endpoint は refresh token cookie をもとに処理するため、access token の有無に依存しない設計とします。
+
 ## Authorization Boundaries
 
 MVP の認可境界は以下を前提とします。
