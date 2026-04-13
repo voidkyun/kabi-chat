@@ -37,7 +37,7 @@ class Workspace(models.Model):
         return bool(user and user.is_authenticated and self.members.filter(pk=user.pk).exists())
 
     def can_manage(self, user) -> bool:
-        return bool(user and user.is_authenticated and (user.is_staff or self.owner_id == user.pk))
+        return bool(user and user.is_authenticated and self.owner_id == user.pk)
 
 
 class WorkspaceMembership(models.Model):

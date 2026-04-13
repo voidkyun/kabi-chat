@@ -101,3 +101,13 @@ def test_message_list_rejects_non_integer_channel_id(client_setup):
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.json() == {"channel_id": "Must be an integer."}
+
+
+@pytest.mark.django_db
+def test_message_list_rejects_non_positive_channel_id(client_setup):
+    owner_client, _ = client_setup["owner"]
+
+    response = owner_client.get(reverse("message-list"), {"channel_id": 0})
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.json() == {"channel_id": "Must be a positive integer."}

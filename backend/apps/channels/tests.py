@@ -109,3 +109,13 @@ def test_channel_list_rejects_non_integer_workspace_id(setup_clients):
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.json() == {"workspace_id": "Must be an integer."}
+
+
+@pytest.mark.django_db
+def test_channel_list_rejects_non_positive_workspace_id(setup_clients):
+    owner_client, _ = setup_clients["owner"]
+
+    response = owner_client.get(reverse("channel-list"), {"workspace_id": 0})
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.json() == {"workspace_id": "Must be a positive integer."}

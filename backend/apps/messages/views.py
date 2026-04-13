@@ -15,13 +15,16 @@ class MessageListCreateView(APIView):
         if channel_id is None:
             return None
         try:
-            return int(channel_id)
+            channel_id = int(channel_id)
         except (TypeError, ValueError) as exc:
             raise ValidationError({"channel_id": "Must be an integer."}) from exc
+        if channel_id <= 0:
+            raise ValidationError({"channel_id": "Must be a positive integer."})
+        return channel_id
 
     def _channel(self, request):
         channel_id = self._parse_channel_id(request)
-        if channel_id:
+        if channel_id is not None:
             return Channel.objects.accessible_to(request.user).filter(pk=channel_id).first()
         return None
 

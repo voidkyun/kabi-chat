@@ -14,9 +14,12 @@ class ChannelListCreateView(generics.ListCreateAPIView):
         if workspace_id is None:
             return None
         try:
-            return int(workspace_id)
+            workspace_id = int(workspace_id)
         except (TypeError, ValueError) as exc:
             raise ValidationError({"workspace_id": "Must be an integer."}) from exc
+        if workspace_id <= 0:
+            raise ValidationError({"workspace_id": "Must be a positive integer."})
+        return workspace_id
 
     def get_queryset(self):
         queryset = (
@@ -30,7 +33,7 @@ class ChannelListCreateView(generics.ListCreateAPIView):
             )
         )
         workspace_id = self._parse_workspace_id()
-        if workspace_id:
+        if workspace_id is not None:
             queryset = queryset.filter(workspace_id=workspace_id)
         return queryset
 

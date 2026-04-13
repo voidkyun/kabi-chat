@@ -246,3 +246,62 @@ def test_macro_list_rejects_non_integer_scope_filters(macro_clients):
     assert workspace_response.json() == {"workspace_id": "Must be an integer."}
     assert channel_response.status_code == status.HTTP_400_BAD_REQUEST
     assert channel_response.json() == {"channel_id": "Must be an integer."}
+
+
+@pytest.mark.django_db
+def test_macro_list_rejects_non_positive_scope_filters(macro_clients):
+    owner_client, _ = macro_clients["owner"]
+
+    workspace_response = owner_client.get(reverse("macro-list"), {"workspace_id": 0})
+    channel_response = owner_client.get(reverse("macro-list"), {"channel_id": 0})
+
+    assert workspace_response.status_code == status.HTTP_400_BAD_REQUEST
+    assert workspace_response.json() == {"workspace_id": "Must be a positive integer."}
+    assert channel_response.status_code == status.HTTP_400_BAD_REQUEST
+    assert channel_response.json() == {"channel_id": "Must be a positive integer."}
+
+
+@pytest.mark.django_db
+def test_staff_cannot_create_scoped_macro_without_workspace_ownership(macro_clients):
+    staff_client, staff = macro_clients["staff"]
+    owner_client, owner = macro_clients["owner"]
+
+    workspace = create_workspace(owner=owner)
+    add_member(workspace, staff)
+    channel = create_channel(workspace=workspace, created_by=owner)
+
+    workspace_response = staff_client.post(
+        reverse("macro-list"),
+        {
+            "name": "\\Scoped",
+            "definition": "\\text{workspace}",
+            "scope": "workspace",
+            "workspace_id": workspace.id,
+        },
+        format="json",
+    )
+    channel_response = staff_client.post(
+        reverse("macro-list"),
+        {
+            "name": "\\ScopedChannel",
+            "definition": "\\text{channel}",
+            "scope": "channel",
+            "channel_id": channel.id,
+        },
+        format="json",
+    )
+
+    assert workspace_response.status_code == status.HTTP_403_FORBIDDEN
+    assert channel_response.status_code == status.HTTP_403_FORBIDDEN
+
+    owner_response = owner_client.post(
+        reverse("macro-list"),
+        {
+            "name": "\\OwnerScoped",
+            "definition": "\\text{owner}",
+            "scope": "workspace",
+            "workspace_id": workspace.id,
+        },
+        format="json",
+    )
+    assert owner_response.status_code == status.HTTP_201_CREATED

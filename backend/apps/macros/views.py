@@ -21,19 +21,22 @@ class MacroListCreateView(APIView):
         if value is None:
             return None
         try:
-            return int(value)
+            parsed_value = int(value)
         except (TypeError, ValueError) as exc:
             raise ValidationError({param_name: "Must be an integer."}) from exc
+        if parsed_value <= 0:
+            raise ValidationError({param_name: "Must be a positive integer."})
+        return parsed_value
 
     def _workspace(self, request):
         workspace_id = self._parse_optional_int_query(request, "workspace_id")
-        if not workspace_id:
+        if workspace_id is None:
             return None
         return Workspace.objects.accessible_to(request.user).filter(pk=workspace_id).first()
 
     def _channel(self, request):
         channel_id = self._parse_optional_int_query(request, "channel_id")
-        if not channel_id:
+        if channel_id is None:
             return None
         return Channel.objects.accessible_to(request.user).filter(pk=channel_id).first()
 
