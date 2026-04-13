@@ -188,6 +188,17 @@ def test_macro_api_resolves_priority_and_enforces_permissions(macro_clients):
         },
     ]
 
+    effective_with_workspace_response = member_client.get(
+        reverse("macro-list"),
+        {
+            "workspace_id": workspace.id,
+            "channel_id": channel.id,
+            "effective": "true",
+        },
+    )
+    assert effective_with_workspace_response.status_code == status.HTTP_200_OK
+    assert effective_with_workspace_response.json() == effective_response.json()
+
     patch_response = owner_client.patch(
         reverse("macro-detail", args=[workspace_response.json()["id"]]),
         {"definition": "\\mathbb{WorkspaceR}"},
@@ -259,6 +270,29 @@ def test_macro_list_rejects_non_positive_scope_filters(macro_clients):
     assert workspace_response.json() == {"workspace_id": "Must be a positive integer."}
     assert channel_response.status_code == status.HTTP_400_BAD_REQUEST
     assert channel_response.json() == {"channel_id": "Must be a positive integer."}
+
+
+@pytest.mark.django_db
+def test_macro_effective_rejects_mismatched_workspace_and_channel(macro_clients):
+    owner_client, owner = macro_clients["owner"]
+
+    workspace = create_workspace(owner=owner)
+    other_workspace = create_workspace(owner=owner)
+    other_channel = create_channel(workspace=other_workspace, created_by=owner)
+
+    response = owner_client.get(
+        reverse("macro-list"),
+        {
+            "effective": "true",
+            "workspace_id": workspace.id,
+            "channel_id": other_channel.id,
+        },
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.json() == {
+        "detail": "workspace_id and channel_id must belong to the same workspace."
+    }
 
 
 @pytest.mark.django_db

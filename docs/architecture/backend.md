@@ -92,6 +92,7 @@ Markdown や TeX の最終レンダリングは Frontend の責務とし、Backe
   - `GET /macros/`
   - `GET /macros/?effective=true&workspace_id={workspace_id}`
   - `GET /macros/?effective=true&channel_id={channel_id}`
+    `workspace_id` と `channel_id` を同時に指定する場合は、`channel` がその `workspace` 配下に属している必要があります。不整合な組み合わせは `400` とします。
   - `POST /macros/`
   - `PATCH /macros/{id}/`
 

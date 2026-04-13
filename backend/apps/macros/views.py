@@ -48,6 +48,10 @@ class MacroListCreateView(APIView):
                 raise ValidationError(
                     {"detail": "effective=true requires workspace_id or channel_id."}
                 )
+            if channel is not None and workspace is not None and channel.workspace_id != workspace.id:
+                raise ValidationError(
+                    {"detail": "workspace_id and channel_id must belong to the same workspace."}
+                )
             macros = resolve_effective_macros(workspace=workspace, channel=channel)
             serializer = MacroDefinitionSerializer(macros, many=True)
             return Response(serializer.data)
