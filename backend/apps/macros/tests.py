@@ -202,3 +202,47 @@ def test_macro_api_resolves_priority_and_enforces_permissions(macro_clients):
         format="json",
     )
     assert denied_patch.status_code == status.HTTP_403_FORBIDDEN
+
+
+@pytest.mark.django_db
+def test_macro_create_rejects_duplicate_name_in_same_scope(macro_clients):
+    staff_client, _ = macro_clients["staff"]
+
+    first_response = staff_client.post(
+        reverse("macro-list"),
+        {
+            "name": "\\RR",
+            "definition": "\\mathbb{R}",
+            "scope": "global",
+        },
+        format="json",
+    )
+    assert first_response.status_code == status.HTTP_201_CREATED
+
+    duplicate_response = staff_client.post(
+        reverse("macro-list"),
+        {
+            "name": "\\RR",
+            "definition": "\\mathbf{R}",
+            "scope": "global",
+        },
+        format="json",
+    )
+
+    assert duplicate_response.status_code == status.HTTP_400_BAD_REQUEST
+    assert duplicate_response.json() == {
+        "name": ["A macro with this name already exists for this scope."]
+    }
+
+
+@pytest.mark.django_db
+def test_macro_list_rejects_non_integer_scope_filters(macro_clients):
+    owner_client, _ = macro_clients["owner"]
+
+    workspace_response = owner_client.get(reverse("macro-list"), {"workspace_id": "abc"})
+    channel_response = owner_client.get(reverse("macro-list"), {"channel_id": "abc"})
+
+    assert workspace_response.status_code == status.HTTP_400_BAD_REQUEST
+    assert workspace_response.json() == {"workspace_id": "Must be an integer."}
+    assert channel_response.status_code == status.HTTP_400_BAD_REQUEST
+    assert channel_response.json() == {"channel_id": "Must be an integer."}

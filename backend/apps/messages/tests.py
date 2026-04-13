@@ -91,3 +91,13 @@ def test_message_api_lists_and_creates_messages_with_channel_scope(client_setup)
         format="json",
     )
     assert outsider_response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+@pytest.mark.django_db
+def test_message_list_rejects_non_integer_channel_id(client_setup):
+    owner_client, _ = client_setup["owner"]
+
+    response = owner_client.get(reverse("message-list"), {"channel_id": "abc"})
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.json() == {"channel_id": "Must be an integer."}

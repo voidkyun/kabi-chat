@@ -99,3 +99,13 @@ def test_channel_api_requires_workspace_access_and_owner_for_updates(setup_clien
     assert owner_patch.json()["topic"] == "Updated by owner"
 
     assert Channel.objects.get(pk=channel_id).topic == "Updated by owner"
+
+
+@pytest.mark.django_db
+def test_channel_list_rejects_non_integer_workspace_id(setup_clients):
+    owner_client, _ = setup_clients["owner"]
+
+    response = owner_client.get(reverse("channel-list"), {"workspace_id": "abc"})
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.json() == {"workspace_id": "Must be an integer."}

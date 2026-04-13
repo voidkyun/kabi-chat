@@ -1,4 +1,5 @@
 from rest_framework import status
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -9,8 +10,17 @@ from .serializers import MessageSerializer
 
 
 class MessageListCreateView(APIView):
-    def _channel(self, request):
+    def _parse_channel_id(self, request):
         channel_id = request.query_params.get("channel_id")
+        if channel_id is None:
+            return None
+        try:
+            return int(channel_id)
+        except (TypeError, ValueError) as exc:
+            raise ValidationError({"channel_id": "Must be an integer."}) from exc
+
+    def _channel(self, request):
+        channel_id = self._parse_channel_id(request)
         if channel_id:
             return Channel.objects.accessible_to(request.user).filter(pk=channel_id).first()
         return None

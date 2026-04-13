@@ -43,6 +43,7 @@ class MacroDefinitionSerializer(serializers.ModelSerializer):
         return serialize_user(obj.updated_by)
 
     def validate(self, attrs):
+        name = attrs.get("name", getattr(self.instance, "name", None))
         scope = attrs.get("scope", getattr(self.instance, "scope", None))
         workspace = attrs.get("workspace", getattr(self.instance, "workspace", None))
         channel = attrs.get("channel", getattr(self.instance, "channel", None))
@@ -75,4 +76,29 @@ class MacroDefinitionSerializer(serializers.ModelSerializer):
                     {"scope": "Channel macros require channel_id and cannot include workspace_id."}
                 )
 
+        if name is not None and scope is not None:
+            self._validate_unique_name(
+                name=name,
+                scope=scope,
+                workspace=workspace,
+                channel=channel,
+            )
+
         return attrs
+
+    def _validate_unique_name(self, *, name, scope, workspace, channel) -> None:
+        queryset = MacroDefinition.objects.filter(name=name, scope=scope)
+        if self.instance is not None:
+            queryset = queryset.exclude(pk=self.instance.pk)
+
+        if scope == MacroDefinition.Scope.GLOBAL:
+            queryset = queryset.filter(workspace__isnull=True, channel__isnull=True)
+        elif scope == MacroDefinition.Scope.WORKSPACE:
+            queryset = queryset.filter(workspace=workspace, channel__isnull=True)
+        elif scope == MacroDefinition.Scope.CHANNEL:
+            queryset = queryset.filter(channel=channel, workspace__isnull=True)
+
+        if queryset.exists():
+            raise serializers.ValidationError(
+                {"name": "A macro with this name already exists for this scope."}
+            )

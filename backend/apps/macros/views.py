@@ -16,14 +16,23 @@ class MacroListCreateView(APIView):
     def _parse_effective(self, value: str | None) -> bool:
         return str(value).lower() in {"1", "true", "yes", "on"}
 
+    def _parse_optional_int_query(self, request, param_name: str):
+        value = request.query_params.get(param_name)
+        if value is None:
+            return None
+        try:
+            return int(value)
+        except (TypeError, ValueError) as exc:
+            raise ValidationError({param_name: "Must be an integer."}) from exc
+
     def _workspace(self, request):
-        workspace_id = request.query_params.get("workspace_id")
+        workspace_id = self._parse_optional_int_query(request, "workspace_id")
         if not workspace_id:
             return None
         return Workspace.objects.accessible_to(request.user).filter(pk=workspace_id).first()
 
     def _channel(self, request):
-        channel_id = request.query_params.get("channel_id")
+        channel_id = self._parse_optional_int_query(request, "channel_id")
         if not channel_id:
             return None
         return Channel.objects.accessible_to(request.user).filter(pk=channel_id).first()
