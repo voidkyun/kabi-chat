@@ -8,7 +8,7 @@ export function MacroPanel() {
       <div className="panel__header">
         <div>
           <p className="eyebrow">Server State</p>
-          <h2>Effective Macros</h2>
+          <h2>Effective TeX Macros</h2>
         </div>
       </div>
 
@@ -22,11 +22,11 @@ export function MacroPanel() {
               <strong>{macro.name}</strong>
               <span className="macro-card__scope">{macro.scope}</span>
             </div>
-            <p className="macro-card__body">{macro.definition}</p>
+            <p className="macro-card__body">{`${macro.name} -> ${macro.definition}`}</p>
           </article>
         ))}
         {!server.macrosLoading && server.macros.length === 0 ? (
-          <p className="status-copy">No effective macros for the current selection.</p>
+          <p className="status-copy">No effective TeX macros for the current selection.</p>
         ) : null}
       </div>
     </div>

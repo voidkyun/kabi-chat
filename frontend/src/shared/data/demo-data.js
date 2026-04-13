@@ -73,16 +73,16 @@ export const demoMessages = [
 export const demoMacros = [
   {
     id: 301,
-    name: "/summary",
-    definition: "議論を 3 行で要約する",
+    name: "\\RR",
+    definition: "\\mathbb{R}",
     scope: "workspace",
     workspace_id: 1,
     channel_id: null,
   },
   {
     id: 302,
-    name: "/tex-check",
-    definition: "数式表現を確認し、必要な TeX 記法に整える",
+    name: "\\vect",
+    definition: "\\boldsymbol{#1}",
     scope: "channel",
     workspace_id: null,
     channel_id: 201,

@@ -22,7 +22,7 @@ export function AuthScreen() {
         <h1>Kabi Chat</h1>
         <p className="auth-copy">
           React SPA の入口です。認証導線と、認証後に workspace / channel / message /
-          macro を並べるメイン画面骨格をここから確認できます。
+          TeX macro を並べるメイン画面骨格をここから確認できます。
         </p>
 
         <div className="auth-actions">
@@ -68,7 +68,7 @@ export function AuthScreen() {
           </div>
           <div className="auth-hints__item">
             <h2>Server state</h2>
-            <p>workspace / channel / message / macro を API またはデモデータから取得します。</p>
+            <p>workspace / channel / message / TeX macro 定義を API またはデモデータから取得します。</p>
           </div>
           <div className="auth-hints__item">
             <h2>UI state</h2>
