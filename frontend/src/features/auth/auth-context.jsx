@@ -1,9 +1,13 @@
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 
 import { requestJson } from "../../shared/api/http";
 import { demoUser } from "../../shared/data/demo-data";
 
 const AuthContext = createContext(null);
+
+function isDiscordCallbackPath() {
+  return window.location.pathname === "/login/callback";
+}
 
 async function fetchCurrentUser(accessToken) {
   return requestJson("/auth/me", {
@@ -17,6 +21,8 @@ export function AuthProvider({ children }) {
   const [accessToken, setAccessToken] = useState("");
   const [user, setUser] = useState(null);
   const [error, setError] = useState("");
+  const [isHandlingCallback, setIsHandlingCallback] = useState(isDiscordCallbackPath());
+  const hasHandledCallbackRef = useRef(false);
 
   const clearAuth = useCallback(() => {
     setStatus("anonymous");
@@ -115,10 +121,54 @@ export function AuthProvider({ children }) {
     setError("");
   }, [clearAuth, mode]);
 
+  useEffect(() => {
+    if (!isDiscordCallbackPath() || hasHandledCallbackRef.current) {
+      return;
+    }
+
+    hasHandledCallbackRef.current = true;
+    setIsHandlingCallback(true);
+    setStatus("loading");
+    setError("");
+
+    const searchParams = new URLSearchParams(window.location.search);
+    const hashValue = window.location.hash.startsWith("#")
+      ? window.location.hash.slice(1)
+      : window.location.hash;
+    const hashParams = new URLSearchParams(hashValue);
+    const accessTokenFromHash = hashParams.get("access_token");
+    const errorDetail = searchParams.get("detail");
+    const errorCode = searchParams.get("error");
+
+    const finishCallback = () => {
+      window.history.replaceState({}, document.title, "/");
+      setIsHandlingCallback(false);
+    };
+
+    if (errorCode) {
+      clearAuth();
+      setError(errorDetail ?? errorCode);
+      finishCallback();
+      return;
+    }
+
+    if (!accessTokenFromHash) {
+      clearAuth();
+      setError("Authentication result is missing.");
+      finishCallback();
+      return;
+    }
+
+    void loginWithAccessToken(accessTokenFromHash).finally(() => {
+      finishCallback();
+    });
+  }, [clearAuth, loginWithAccessToken]);
+
   const value = useMemo(() => ({
     accessToken,
     apiRequest,
     error,
+    isHandlingCallback,
     loginWithAccessToken,
     logout,
     mode,
@@ -126,7 +176,19 @@ export function AuthProvider({ children }) {
     status,
     useDemoSession,
     user,
-  }), [accessToken, apiRequest, error, loginWithAccessToken, logout, mode, startDiscordLogin, status, useDemoSession, user]);
+  }), [
+    accessToken,
+    apiRequest,
+    error,
+    isHandlingCallback,
+    loginWithAccessToken,
+    logout,
+    mode,
+    startDiscordLogin,
+    status,
+    useDemoSession,
+    user,
+  ]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -53,7 +53,7 @@ export function AuthScreen() {
             className="token-form__input"
             value={tokenInput}
             onChange={(event) => setTokenInput(event.target.value)}
-            placeholder="Backend の /auth/discord/callback または /auth/token/refresh で取得した access token"
+            placeholder="/login/callback の結果または /auth/token/refresh で取得した access token"
             rows={4}
           />
           <button className="secondary-button" type="submit" disabled={!canSubmitToken}>

@@ -12,7 +12,8 @@
 4. Backend が code と state を検証し、Discord から user 情報を取得する
 5. Backend が User を作成または更新する
 6. Backend が access token と refresh token を発行する
-7. Frontend は `GET /auth/me` を使ってログイン済みユーザー情報を取得する
+7. `AUTH_FRONTEND_CALLBACK_URL` が設定されている場合は Frontend の `/login/callback` に戻し、未設定時は callback response として返す
+8. Frontend は `GET /auth/me` を使ってログイン済みユーザー情報を取得する
 
 ## Token Strategy
 
@@ -77,7 +78,8 @@ MVP の認可境界は以下を前提とします。
   - `provider`, `authorization_url`, `state` を返す
 - `GET /auth/discord/callback`
   - Discord callback を受けてログイン完了
-  - `access_token`, `token_type`, `expires_in`, `user` を返す
+  - `AUTH_FRONTEND_CALLBACK_URL` がある場合は Frontend の callback URL に redirect する
+  - 未設定時は `access_token`, `token_type`, `expires_in`, `user` を返す
   - refresh token は cookie に設定する
 - `GET /auth/me`
   - 現在ユーザー情報を返す
@@ -94,3 +96,4 @@ MVP の認可境界は以下を前提とします。
 - JWT signing secret または鍵は Infrastructure の secret 管理配下に置く
 - Frontend には client secret を置かない
 - CSRF, cookie, redirect URI の整合性を環境ごとに管理する
+- Discord Developer Portal の redirect URI は `DISCORD_REDIRECT_URI` と完全一致させる

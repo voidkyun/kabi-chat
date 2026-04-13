@@ -1,4 +1,7 @@
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+
 from django.conf import settings
+from django.http import HttpResponseRedirect
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -9,6 +12,40 @@ from .services import AuthError, DiscordOAuthService, RefreshTokenService, seria
 
 def error_response(error: AuthError) -> Response:
     return Response({"error": error.code, "detail": error.detail}, status=error.status_code)
+
+
+def build_frontend_callback_url(params: dict[str, str], *, use_fragment: bool) -> str | None:
+    callback_url = settings.AUTH_FRONTEND_CALLBACK_URL.strip()
+    if not callback_url:
+        return None
+
+    split_result = urlsplit(callback_url)
+    query_params = dict(parse_qsl(split_result.query, keep_blank_values=True))
+    fragment_params = dict(parse_qsl(split_result.fragment, keep_blank_values=True))
+    if use_fragment:
+        fragment_params.update(params)
+    else:
+        query_params.update(params)
+
+    return urlunsplit(
+        (
+            split_result.scheme,
+            split_result.netloc,
+            split_result.path,
+            urlencode(query_params),
+            urlencode(fragment_params),
+        )
+    )
+
+
+def callback_error_response(error: AuthError) -> Response | HttpResponseRedirect:
+    redirect_url = build_frontend_callback_url(
+        {"error": error.code, "detail": error.detail},
+        use_fragment=False,
+    )
+    if redirect_url:
+        return HttpResponseRedirect(redirect_url)
+    return error_response(error)
 
 
 def set_refresh_token_cookie(response: Response, refresh_token: str) -> None:
@@ -85,27 +122,27 @@ class DiscordCallbackView(APIView):
 
     def get(self, request):
         if request.query_params.get("error"):
-            return error_response(
+            return callback_error_response(
                 AuthError("discord_access_denied", "Discord authorization was denied.", 400)
             )
 
         raw_state_cookie = request.COOKIES.get(settings.AUTH_OAUTH_STATE_COOKIE_NAME)
         if not raw_state_cookie:
-            return error_response(AuthError("invalid_state", "OAuth state is missing.", 400))
+            return callback_error_response(AuthError("invalid_state", "OAuth state is missing.", 400))
 
         token_service = RefreshTokenService()
         try:
             expected_state = token_service.load_oauth_state(raw_state_cookie)
         except AuthError as error:
-            return error_response(error)
+            return callback_error_response(error)
 
         received_state = request.query_params.get("state")
         if not received_state or received_state != expected_state:
-            return error_response(AuthError("invalid_state", "OAuth state did not match.", 400))
+            return callback_error_response(AuthError("invalid_state", "OAuth state did not match.", 400))
 
         code = request.query_params.get("code")
         if not code:
-            return error_response(
+            return callback_error_response(
                 AuthError("invalid_authorization_code", "Authorization code is missing.", 400)
             )
 
@@ -116,18 +153,29 @@ class DiscordCallbackView(APIView):
             user = token_service.upsert_discord_user(discord_user)
             token_pair = token_service.issue_token_pair(user)
         except AuthError as error:
-            response = error_response(error)
+            response = callback_error_response(error)
             delete_oauth_state_cookie(response)
             return response
 
-        response = Response(
+        redirect_url = build_frontend_callback_url(
             {
                 "access_token": token_pair.access_token,
                 "token_type": "Bearer",
-                "expires_in": token_pair.expires_in,
-                "user": AuthenticatedUserSerializer(serialize_user(user)).data,
-            }
+                "expires_in": str(token_pair.expires_in),
+            },
+            use_fragment=True,
         )
+        if redirect_url:
+            response = HttpResponseRedirect(redirect_url)
+        else:
+            response = Response(
+                {
+                    "access_token": token_pair.access_token,
+                    "token_type": "Bearer",
+                    "expires_in": token_pair.expires_in,
+                    "user": AuthenticatedUserSerializer(serialize_user(user)).data,
+                }
+            )
         set_refresh_token_cookie(response, token_pair.refresh_token)
         delete_oauth_state_cookie(response)
         return response

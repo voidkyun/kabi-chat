@@ -49,7 +49,7 @@ Frontend の状態は以下に分離します。
 - Backend との通信は DRF が提供する REST API を利用する
 - 認証済み API には access token を付与する
 - access token 失効時は refresh endpoint で再取得する
-- Discord 認証の callback 処理は Backend 側で完結させる
+- Discord 認証の callback 自体は Backend が受け、完了後に Frontend の `/login/callback` へ戻す
 
 想定 API カテゴリ:
 

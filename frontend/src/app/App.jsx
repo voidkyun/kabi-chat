@@ -1,4 +1,5 @@
 import { AuthProvider, useAuth } from "../features/auth/auth-context";
+import { AuthCallbackScreen } from "../features/auth/AuthCallbackScreen";
 import { AuthScreen } from "../features/auth/AuthScreen";
 import { ServerStateProvider } from "../features/server-state/server-state-context";
 import { UIStateProvider, useUIState } from "../features/ui-state/ui-state-context";
@@ -9,6 +10,10 @@ import { WorkspaceList } from "../features/workspaces/WorkspaceList";
 
 function AppContent() {
   const auth = useAuth();
+
+  if (auth.isHandlingCallback) {
+    return <AuthCallbackScreen />;
+  }
 
   if (auth.status !== "authenticated") {
     return <AuthScreen />;

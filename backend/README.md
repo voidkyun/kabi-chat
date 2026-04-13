@@ -24,6 +24,7 @@ MVP の実装詳細は `docs/architecture/backend.md` と `docs/architecture/aut
 - Entrypoint: `manage.py`
 - Health check: `GET /healthz/`
 - Auth API: `GET /auth/discord/login`, `GET /auth/discord/callback`, `GET /auth/me`, `POST /auth/token/refresh`, `POST /auth/logout`
+- `AUTH_FRONTEND_CALLBACK_URL` が設定されている場合、`GET /auth/discord/callback` は token 発行後に Frontend へ redirect します
 - Auth persistence: user profile と refresh token 永続化
 - Workspace API: `GET/POST /workspaces/`, `GET/PATCH /workspaces/{id}/`
 - Channel API: `GET/POST /channels/`, `GET/PATCH /channels/{id}/`
