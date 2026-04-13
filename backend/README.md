@@ -25,6 +25,12 @@ MVP の実装詳細は `docs/architecture/backend.md` と `docs/architecture/aut
 - Health check: `GET /healthz/`
 - Auth API: `GET /auth/discord/login`, `GET /auth/discord/callback`, `GET /auth/me`, `POST /auth/token/refresh`, `POST /auth/logout`
 - Auth persistence: user profile と refresh token 永続化
+- Workspace API: `GET/POST /workspaces/`, `GET/PATCH /workspaces/{id}/`
+- Channel API: `GET/POST /channels/`, `GET/PATCH /channels/{id}/`
+- Message API: `GET /messages/?channel_id=...`, `POST /messages/`
+- Macro API: `GET/POST /macros/`, `PATCH /macros/{id}/`, `GET /macros/?effective=true&workspace_id=...`, `GET /macros/?effective=true&channel_id=...`
+  - `workspace_id` と `channel_id` を同時に指定する場合は、`channel` がその `workspace` 配下に属している必要があります。
+- Permission baseline: workspace member は参照可能、workspace owner は scoped resource を更新可能、global macro 更新は staff のみ
 
 ## Local Run
 

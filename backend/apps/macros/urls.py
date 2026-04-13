@@ -1,8 +1,9 @@
 from django.urls import path
 
-from .views import MacroListView
+from .views import MacroDetailView, MacroListCreateView
 
 
 urlpatterns = [
-    path("", MacroListView.as_view(), name="macro-list"),
+    path("", MacroListCreateView.as_view(), name="macro-list"),
+    path("<int:pk>/", MacroDetailView.as_view(), name="macro-detail"),
 ]

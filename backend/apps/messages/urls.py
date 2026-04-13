@@ -1,8 +1,8 @@
 from django.urls import path
 
-from .views import MessageListView
+from .views import MessageListCreateView
 
 
 urlpatterns = [
-    path("", MessageListView.as_view(), name="message-list"),
+    path("", MessageListCreateView.as_view(), name="message-list"),
 ]

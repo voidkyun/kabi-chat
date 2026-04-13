@@ -57,4 +57,4 @@ npm install
 
 ## Current Bootstrap Status
 
-現在は Django / DRF 基盤に加えて、Discord OAuth2 + JWT の認証 API 骨格を導入済みです。`GET /auth/discord/login`、`GET /auth/discord/callback`、`GET /auth/me`、`POST /auth/token/refresh`、`POST /auth/logout` が利用でき、refresh token は cookie で管理します。
+現在は Django / DRF 基盤に加えて、Discord OAuth2 + JWT の認証 API と MVP の domain API を導入済みです。`GET /auth/discord/login`、`GET /auth/discord/callback`、`GET /auth/me`、`POST /auth/token/refresh`、`POST /auth/logout` に加えて、`/workspaces`、`/channels`、`/messages`、`/macros` が利用できます。macro は `global / workspace / channel` の 3 スコープを持ち、`GET /macros/?effective=true&workspace_id=...` または `channel_id=...` で `channel > workspace > global` の優先順位を解決した一覧を取得できます。`workspace_id` と `channel_id` を同時に渡す場合は、`channel` がその `workspace` 配下に属している必要があります。

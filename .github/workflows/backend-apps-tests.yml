@@ -1,0 +1,31 @@
+name: Backend Apps Tests
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/backend-apps-tests.yml"
+      - "backend/**"
+      - "docker-compose.yml"
+  push:
+    paths:
+      - ".github/workflows/backend-apps-tests.yml"
+      - "backend/**"
+      - "docker-compose.yml"
+
+jobs:
+  backend-apps-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build app image
+        run: docker compose build app
+
+      - name: Run backend app tests
+        run: docker compose run --rm app pytest apps
+
+      - name: Tear down containers
+        if: always()
+        run: docker compose down -v
