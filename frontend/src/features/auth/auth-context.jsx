@@ -1,12 +1,20 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 
-import { requestJson } from "../../shared/api/http";
+import { ApiError, requestJson } from "../../shared/api/http";
 import { demoUser } from "../../shared/data/demo-data";
 
 const AuthContext = createContext(null);
 
 function isDiscordCallbackPath() {
   return window.location.pathname === "/login/callback";
+}
+
+function isRecoverableRestoreError(error) {
+  if (!(error instanceof ApiError) || error.status !== 401) {
+    return false;
+  }
+
+  return ["invalid_refresh_token", "missing_refresh_token"].includes(error.payload?.error);
 }
 
 async function fetchCurrentUser(accessToken) {
@@ -23,12 +31,54 @@ export function AuthProvider({ children }) {
   const [error, setError] = useState("");
   const [isHandlingCallback, setIsHandlingCallback] = useState(isDiscordCallbackPath());
   const hasHandledCallbackRef = useRef(false);
+  const hasRestoredSessionRef = useRef(false);
+  const accessTokenRef = useRef("");
+  const modeRef = useRef("none");
+  const refreshRequestRef = useRef(null);
 
   const clearAuth = useCallback(() => {
+    accessTokenRef.current = "";
+    modeRef.current = "none";
+    refreshRequestRef.current = null;
     setStatus("anonymous");
     setMode("none");
     setAccessToken("");
     setUser(null);
+  }, []);
+
+  const establishApiSession = useCallback(async (token) => {
+    const me = await fetchCurrentUser(token);
+    accessTokenRef.current = token;
+    modeRef.current = "api";
+    setAccessToken(token);
+    setUser({
+      id: me.id,
+      username: me.username,
+      display_name: me.display_name,
+      avatar_url: me.avatar_url,
+      discord_user_id: me.discord_user_id,
+    });
+    setMode("api");
+    setStatus("authenticated");
+    return me;
+  }, []);
+
+  const refreshAccessToken = useCallback(async () => {
+    if (!refreshRequestRef.current) {
+      refreshRequestRef.current = requestJson("/auth/token/refresh", {
+        method: "POST",
+      })
+        .then((refreshed) => {
+          accessTokenRef.current = refreshed.access_token;
+          setAccessToken(refreshed.access_token);
+          return refreshed.access_token;
+        })
+        .finally(() => {
+          refreshRequestRef.current = null;
+        });
+    }
+
+    return refreshRequestRef.current;
   }, []);
 
   const loginWithAccessToken = useCallback(async (token) => {
@@ -36,30 +86,12 @@ export function AuthProvider({ children }) {
     setError("");
 
     try {
-      const me = await fetchCurrentUser(token);
-      setAccessToken(token);
-      setUser({
-        id: me.id,
-        username: me.username,
-        display_name: me.display_name,
-        avatar_url: me.avatar_url,
-        discord_user_id: me.discord_user_id,
-      });
-      setMode("api");
-      setStatus("authenticated");
+      await establishApiSession(token);
     } catch (loginError) {
       clearAuth();
       setError(loginError.message);
     }
-  }, [clearAuth]);
-
-  const refreshAccessToken = useCallback(async () => {
-    const refreshed = await requestJson("/auth/token/refresh", {
-      method: "POST",
-    });
-    setAccessToken(refreshed.access_token);
-    return refreshed.access_token;
-  }, []);
+  }, [clearAuth, establishApiSession]);
 
   const apiRequest = useCallback(async (path, options = {}) => {
     const runRequest = (token) =>
@@ -68,14 +100,20 @@ export function AuthProvider({ children }) {
         accessToken: token,
       });
 
+    const currentToken = accessTokenRef.current;
+
     try {
-      return await runRequest(accessToken);
+      return await runRequest(currentToken);
     } catch (requestError) {
-      if (requestError.status !== 401 || mode !== "api") {
+      if (requestError.status !== 401 || modeRef.current !== "api") {
         throw requestError;
       }
 
       try {
+        if (accessTokenRef.current && accessTokenRef.current !== currentToken) {
+          return await runRequest(accessTokenRef.current);
+        }
+
         const nextToken = await refreshAccessToken();
         return await runRequest(nextToken);
       } catch (refreshError) {
@@ -83,7 +121,7 @@ export function AuthProvider({ children }) {
         throw refreshError;
       }
     }
-  }, [accessToken, clearAuth, mode, refreshAccessToken]);
+  }, [clearAuth, refreshAccessToken]);
 
   const startDiscordLogin = useCallback(async () => {
     setStatus("loading");
@@ -99,6 +137,9 @@ export function AuthProvider({ children }) {
   }, [clearAuth]);
 
   const useDemoSession = useCallback(() => {
+    accessTokenRef.current = "";
+    modeRef.current = "demo";
+    refreshRequestRef.current = null;
     setAccessToken("");
     setUser(demoUser);
     setMode("demo");
@@ -163,6 +204,25 @@ export function AuthProvider({ children }) {
       finishCallback();
     });
   }, [clearAuth, loginWithAccessToken]);
+
+  useEffect(() => {
+    if (isDiscordCallbackPath() || hasRestoredSessionRef.current) {
+      return;
+    }
+
+    hasRestoredSessionRef.current = true;
+    setStatus("loading");
+    setError("");
+
+    void refreshAccessToken()
+      .then((token) => establishApiSession(token))
+      .catch((restoreError) => {
+        clearAuth();
+        if (!isRecoverableRestoreError(restoreError)) {
+          setError(restoreError.message);
+        }
+      });
+  }, [clearAuth, establishApiSession, refreshAccessToken]);
 
   const value = useMemo(() => ({
     accessToken,

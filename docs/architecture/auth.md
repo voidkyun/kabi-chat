@@ -13,7 +13,8 @@
 5. Backend が User を作成または更新する
 6. Backend が access token と refresh token を発行する
 7. `AUTH_FRONTEND_CALLBACK_URL` が設定されている場合は Frontend の `/login/callback` に戻し、未設定時は callback response として返す
-8. Frontend は `GET /auth/me` を使ってログイン済みユーザー情報を取得する
+8. Frontend は callback 直後に `GET /auth/me` を使ってログイン済みユーザー情報を取得する
+9. Frontend は page reload や新規 tab でも `POST /auth/token/refresh` と `GET /auth/me` により session を再確立する
 
 ## Token Strategy
 
@@ -27,6 +28,8 @@
 refresh は `POST /auth/token/refresh` で行い、logout は `POST /auth/logout` で refresh token を無効化します。
 
 この 2 endpoint は refresh token cookie をもとに処理するため、access token の有無に依存しない設計とします。
+
+Frontend は複数 API request が同時に `401` を受けても refresh を 1 回に集約し、同一 session 内で refresh token rotation と競合しないように扱います。
 
 ## Authorization Boundaries
 
