@@ -15,6 +15,7 @@ backend/**/*.pyc
 
 # Terraform / infra
 infra/terraform/.terraform/
+infra/terraform/**/.terraform/
 infra/terraform/**/*.tfstate
 infra/terraform/**/*.tfstate.*
 infra/terraform/**/*.tfplan

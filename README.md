@@ -57,7 +57,8 @@ Vite 開発サーバーは `http://localhost:5173` を既定とし、Backend API
 - Frontend 実装は `frontend/` 配下で進めます
 - Backend 実装は `backend/` 配下で進めます
 - Backend とローカル DB はルート `docker-compose.yml` で管理します
-- Infrastructure は `infra/terraform/` 配下で `dev` / `prod` を分離します
+- Infrastructure は `infra/terraform/` 配下で `dev` / `prod` を分離し、共有 module を `modules/` 配下に置きます
+- Docker Compose はローカル開発専用、Terraform は AWS 環境専用です
 - 詳細な実装責務は `docs/architecture/*.md` を参照します
 
 ## Current Bootstrap Status

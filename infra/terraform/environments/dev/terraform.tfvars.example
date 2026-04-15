@@ -1,0 +1,40 @@
+aws_region = "ap-northeast-1"
+
+vpc_cidr = "10.10.0.0/16"
+
+availability_zones = [
+  "ap-northeast-1a",
+  "ap-northeast-1c",
+]
+
+public_subnet_cidrs = [
+  "10.10.0.0/24",
+  "10.10.1.0/24",
+]
+
+private_app_subnet_cidrs = [
+  "10.10.10.0/24",
+  "10.10.11.0/24",
+]
+
+private_db_subnet_cidrs = [
+  "10.10.20.0/24",
+  "10.10.21.0/24",
+]
+
+backend_image_tag     = "latest"
+backend_desired_count = 1
+backend_cpu           = 512
+backend_memory        = 1024
+
+db_instance_class          = "db.t4g.micro"
+db_allocated_storage       = 20
+db_backup_retention_period = 7
+db_deletion_protection     = false
+db_skip_final_snapshot     = true
+
+app_environment_variables = {
+  AUTH_FRONTEND_CALLBACK_URL = "https://dev.example.com/login/callback"
+  DISCORD_CLIENT_ID          = "replace-me"
+  DISCORD_REDIRECT_URI       = "https://api.dev.example.com/auth/discord/callback"
+}
