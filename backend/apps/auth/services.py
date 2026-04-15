@@ -2,6 +2,7 @@ import base64
 import hashlib
 import hmac
 import json
+import logging
 import os
 import secrets
 from dataclasses import dataclass
@@ -17,6 +18,8 @@ from django.db import transaction
 from django.utils import timezone
 
 from .models import RefreshToken, UserProfile
+
+logger = logging.getLogger(__name__)
 
 
 class AuthError(Exception):
@@ -57,6 +60,18 @@ class DiscordOAuthService:
     authorization_endpoint = "https://discord.com/oauth2/authorize"
     token_endpoint = "https://discord.com/api/oauth2/token"
     user_endpoint = "https://discord.com/api/users/@me"
+    default_user_agent = (
+        "Mozilla/5.0 (X11; Linux x86_64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/135.0.0.0 Safari/537.36"
+    )
+
+    def _build_headers(self, headers: dict[str, str]) -> dict[str, str]:
+        merged_headers = {
+            "User-Agent": os.getenv("DISCORD_HTTP_USER_AGENT", self.default_user_agent),
+        }
+        merged_headers.update(headers)
+        return merged_headers
 
     def build_authorization_url(self, state: str) -> str:
         client_id = os.getenv("DISCORD_CLIENT_ID", "")
@@ -91,10 +106,12 @@ class DiscordOAuthService:
                     "redirect_uri": os.getenv("DISCORD_REDIRECT_URI", ""),
                 }
             ).encode(),
-            headers={
-                "Accept": "application/json",
-                "Content-Type": "application/x-www-form-urlencoded",
-            },
+            headers=self._build_headers(
+                {
+                    "Accept": "application/json",
+                    "Content-Type": "application/x-www-form-urlencoded",
+                }
+            ),
             method="POST",
         )
         payload = self._request_json(request, invalid_code_status=400)
@@ -110,10 +127,12 @@ class DiscordOAuthService:
     def fetch_user(self, access_token: str) -> dict[str, object]:
         request = Request(
             self.user_endpoint,
-            headers={
-                "Accept": "application/json",
-                "Authorization": f"Bearer {access_token}",
-            },
+            headers=self._build_headers(
+                {
+                    "Accept": "application/json",
+                    "Authorization": f"Bearer {access_token}",
+                }
+            ),
             method="GET",
         )
         payload = self._request_json(request, invalid_code_status=502)
@@ -144,13 +163,29 @@ class DiscordOAuthService:
                 return json.loads(response.read().decode())
         except HTTPError as exc:
             detail = "Discord rejected the request."
+            raw_body = ""
             try:
-                payload = json.loads(exc.read().decode())
+                raw_body = exc.read().decode()
+                payload = json.loads(raw_body)
+                error_code = payload.get("error")
                 error_description = payload.get("error_description")
                 if error_description:
                     detail = error_description
+                elif error_code == "invalid_grant":
+                    detail = (
+                        "Discord rejected the authorization code. "
+                        "It may be expired, already used, or the redirect URI may not match."
+                    )
+                elif payload.get("message"):
+                    detail = str(payload["message"])
             except (json.JSONDecodeError, UnicodeDecodeError):
                 pass
+            logger.warning(
+                "Discord API request failed: url=%s status=%s body=%r",
+                request.full_url,
+                exc.code,
+                raw_body[:500],
+            )
             status_code = invalid_code_status if exc.code < 500 else 502
             code = "invalid_authorization_code" if status_code == 400 else "discord_unavailable"
             raise AuthError(code, detail, status_code) from exc

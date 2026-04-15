@@ -1,13 +1,17 @@
+from io import BytesIO
 from datetime import timedelta
+from urllib.error import HTTPError
+from urllib.parse import parse_qsl, urlsplit
 
 import pytest
 from django.contrib.auth import get_user_model
-from django.utils import timezone
+from django.conf import settings as django_settings
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from .services import AuthError, JWTService
+from .services import AuthError, DiscordOAuthService, JWTService
 
 
 @pytest.fixture
@@ -20,6 +24,7 @@ def configured_discord_env(monkeypatch):
     monkeypatch.setenv("DISCORD_CLIENT_ID", "discord-client-id")
     monkeypatch.setenv("DISCORD_CLIENT_SECRET", "discord-client-secret")
     monkeypatch.setenv("DISCORD_REDIRECT_URI", "http://localhost:8000/auth/discord/callback")
+    monkeypatch.setattr(django_settings, "AUTH_FRONTEND_CALLBACK_URL", "")
 
 
 @pytest.fixture
@@ -224,6 +229,104 @@ def test_discord_callback_rejects_invalid_authorization_code(
         "error": "invalid_authorization_code",
         "detail": "Invalid authorization code.",
     }
+
+
+@pytest.mark.django_db
+def test_discord_callback_redirects_to_frontend_when_callback_url_is_configured(
+    api_client,
+    configured_discord_env,
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        django_settings,
+        "AUTH_FRONTEND_CALLBACK_URL",
+        "http://localhost:5173/login/callback",
+    )
+    monkeypatch.setattr(
+        "apps.auth.services.DiscordOAuthService.exchange_code",
+        lambda self, code: {"access_token": "discord-access-token"},
+    )
+    monkeypatch.setattr(
+        "apps.auth.services.DiscordOAuthService.fetch_user",
+        lambda self, access_token: {
+            "discord_user_id": "12345",
+            "discord_username": "kabi",
+            "display_name": "Kabi",
+            "avatar_url": "",
+        },
+    )
+
+    state = api_client.get(reverse("discord-login")).json()["state"]
+    callback_response = api_client.get(
+        reverse("discord-callback"),
+        {"code": "valid-code", "state": state},
+    )
+
+    location = callback_response["Location"]
+    split_result = urlsplit(location)
+    fragment = dict(parse_qsl(split_result.fragment, keep_blank_values=True))
+
+    assert callback_response.status_code == status.HTTP_302_FOUND
+    assert location.startswith("http://localhost:5173/login/callback#")
+    assert fragment["token_type"] == "Bearer"
+    assert int(fragment["expires_in"]) > 0
+    assert fragment["access_token"]
+    assert callback_response.cookies["kabi_chat_refresh_token"].value
+
+
+@pytest.mark.django_db
+def test_discord_callback_redirects_errors_to_frontend_when_callback_url_is_configured(
+    api_client,
+    configured_discord_env,
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        django_settings,
+        "AUTH_FRONTEND_CALLBACK_URL",
+        "http://localhost:5173/login/callback",
+    )
+
+    response = api_client.get(reverse("discord-callback"), {"error": "access_denied"})
+
+    split_result = urlsplit(response["Location"])
+    query = dict(parse_qsl(split_result.query, keep_blank_values=True))
+
+    assert response.status_code == status.HTTP_302_FOUND
+    assert response["Location"].startswith("http://localhost:5173/login/callback?")
+    assert query == {
+        "error": "discord_access_denied",
+        "detail": "Discord authorization was denied.",
+    }
+
+
+def test_discord_oauth_service_surfaces_invalid_grant_details(monkeypatch):
+    def raise_invalid_grant(request, timeout):
+        raise HTTPError(
+            request.full_url,
+            400,
+            "Bad Request",
+            hdrs=None,
+            fp=BytesIO(b'{"error":"invalid_grant"}'),
+        )
+
+    monkeypatch.setattr("apps.auth.services.urlopen", raise_invalid_grant)
+
+    with pytest.raises(AuthError) as exc_info:
+        DiscordOAuthService().exchange_code("expired-code")
+
+    assert exc_info.value.code == "invalid_authorization_code"
+    assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
+    assert exc_info.value.detail == (
+        "Discord rejected the authorization code. "
+        "It may be expired, already used, or the redirect URI may not match."
+    )
+
+
+def test_discord_oauth_service_sets_user_agent_header():
+    headers = DiscordOAuthService()._build_headers({"Accept": "application/json"})
+
+    assert headers["Accept"] == "application/json"
+    assert headers["User-Agent"]
 
 
 @pytest.mark.django_db

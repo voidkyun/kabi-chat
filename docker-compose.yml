@@ -16,6 +16,7 @@ services:
       DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET:-replace-me}
       DISCORD_REDIRECT_URI: ${DISCORD_REDIRECT_URI:-http://localhost:8000/auth/discord/callback}
       JWT_SIGNING_KEY: ${JWT_SIGNING_KEY:-replace-me}
+      AUTH_FRONTEND_CALLBACK_URL: ${AUTH_FRONTEND_CALLBACK_URL:-http://localhost:5173/login/callback}
     entrypoint: ["sh", "/app/entrypoint.sh"]
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
