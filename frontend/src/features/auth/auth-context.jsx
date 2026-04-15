@@ -206,7 +206,12 @@ export function AuthProvider({ children }) {
   }, [clearAuth, loginWithAccessToken]);
 
   useEffect(() => {
-    if (isDiscordCallbackPath() || hasRestoredSessionRef.current) {
+    if (
+      isDiscordCallbackPath()
+      || hasRestoredSessionRef.current
+      || modeRef.current === "api"
+      || accessTokenRef.current
+    ) {
       return;
     }
 
