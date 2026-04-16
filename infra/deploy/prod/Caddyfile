@@ -1,0 +1,20 @@
+{
+	email {$ACME_EMAIL}
+}
+
+{$APP_DOMAIN} {
+	encode zstd gzip
+
+	@backend path /admin/* /auth/* /channels/* /healthz /healthz/* /macros/* /messages/* /workspaces/*
+
+	handle @backend {
+		reverse_proxy app:8000 {
+			header_up X-Forwarded-Proto {scheme}
+			header_up X-Forwarded-Host {host}
+		}
+	}
+
+	root * /srv
+	try_files {path} /index.html
+	file_server
+}

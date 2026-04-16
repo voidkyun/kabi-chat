@@ -52,6 +52,8 @@ ECS Fargate, RDS PostgreSQL, ALB, ECR は将来の拡張候補とし、アーリ
 
 Docker Compose はローカル開発環境の再現用であり、クラウド環境とは compose file や secret の注入経路を分離します。アーリーアクセス中はローカル開発を主とし、クラウド `dev` は常設前提にしません。
 
+配備素材は `infra/deploy/prod/`、Terraform entrypoint は `infra/terraform/environments/{dev,prod}/`、共通 module は `infra/terraform/modules/lightsail_early_access/` を既定とします。
+
 ## Environment Separation
 
 最低限 `dev` と `prod` を分離します。
