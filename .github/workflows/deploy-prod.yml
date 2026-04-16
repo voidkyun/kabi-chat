@@ -1,0 +1,94 @@
+name: Deploy Prod
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/deploy-prod.yml"
+      - "frontend/**"
+      - "backend/**"
+      - "infra/deploy/prod/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: prod-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy-prod:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: prod
+    env:
+      PROD_DEPLOY_PATH: ${{ vars.PROD_DEPLOY_PATH }}
+      PROD_SSH_HOST: ${{ vars.PROD_SSH_HOST }}
+      PROD_SSH_USER: ${{ vars.PROD_SSH_USER }}
+      RELEASE_ARCHIVE: kabi-chat-${{ github.sha }}.tar.gz
+      RELEASE_ENV_FILE: kabi-chat-${{ github.sha }}.env
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate prod compose build
+        run: DEPLOY_ENV_FILE=.env.example docker compose -f infra/deploy/prod/docker-compose.yml --env-file infra/deploy/prod/.env.example build gateway app
+
+      - name: Create release archive
+        run: git archive --format=tar.gz --output "$RELEASE_ARCHIVE" HEAD
+
+      - name: Write prod env file
+        run: |
+          cat <<'EOF' > "$RELEASE_ENV_FILE"
+          ${{ secrets.PROD_APP_ENV_FILE }}
+          EOF
+
+      - name: Configure SSH
+        run: |
+          install -m 700 -d ~/.ssh
+          cat <<'EOF' > ~/.ssh/id_ed25519
+          ${{ secrets.PROD_SSH_PRIVATE_KEY }}
+          EOF
+          chmod 600 ~/.ssh/id_ed25519
+          cat <<'EOF' > ~/.ssh/known_hosts
+          ${{ secrets.PROD_SSH_KNOWN_HOSTS }}
+          EOF
+
+      - name: Upload release bundle
+        run: |
+          scp \
+            -i ~/.ssh/id_ed25519 \
+            -o StrictHostKeyChecking=yes \
+            "$RELEASE_ARCHIVE" \
+            "$RELEASE_ENV_FILE" \
+            "${PROD_SSH_USER}@${PROD_SSH_HOST}:/tmp/"
+
+      - name: Deploy on prod host
+        run: |
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes "${PROD_SSH_USER}@${PROD_SSH_HOST}" \
+            "DEPLOY_PATH='${PROD_DEPLOY_PATH}' RELEASE_SHA='${GITHUB_SHA}' RELEASE_ARCHIVE='/tmp/${RELEASE_ARCHIVE}' RELEASE_ENV_FILE='/tmp/${RELEASE_ENV_FILE}' bash -s" <<'EOF'
+          set -euo pipefail
+
+          deploy_path="${DEPLOY_PATH:-/opt/kabi-chat}"
+          release_dir="${deploy_path}/releases/${RELEASE_SHA}"
+          current_link="${deploy_path}/current"
+          shared_dir="${deploy_path}/shared"
+          shared_env_file="${shared_dir}/prod.env"
+
+          mkdir -p "${deploy_path}/releases" "${shared_dir}"
+          rm -rf "${release_dir}"
+          mkdir -p "${release_dir}"
+
+          tar -xzf "${RELEASE_ARCHIVE}" -C "${release_dir}"
+          install -m 600 "${RELEASE_ENV_FILE}" "${shared_env_file}"
+          ln -sfn "${release_dir}" "${current_link}"
+
+          cd "${current_link}"
+          cp "${shared_env_file}" infra/deploy/prod/.env
+          sh infra/deploy/prod/deploy.sh
+
+          rm -f "${RELEASE_ARCHIVE}" "${RELEASE_ENV_FILE}"
+          EOF

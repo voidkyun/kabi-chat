@@ -60,6 +60,7 @@ Vite 開発サーバーは `http://localhost:5173` を既定とし、Backend API
 - Infrastructure は `infra/terraform/` 配下で `dev` / `prod` を分離します
 - アーリーアクセスの常設クラウド環境は低コストな単一 instance 構成を前提とします
 - 本番配備素材は `infra/deploy/prod/` に置き、reverse proxy + backend + PostgreSQL を同一 host に載せます
+- `main` merge から prod deploy までは GitHub Actions で自動化し、詳細は `docs/dev-workflow/prod-deploy.md` を参照します
 - 詳細な実装責務は `docs/architecture/*.md` を参照します
 
 ## Current Bootstrap Status
