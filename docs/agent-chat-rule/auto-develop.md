@@ -6,8 +6,8 @@
 
 `[autodev]`
 
-詳細な実行手順は `docs/dev-workflows/autodev.md` を参照する。  
-詳細なレビュー基準は `docs/dev-workflows/code-review.md` を参照する。
+詳細な実行手順は `docs/dev-workflow/autodev.md` を参照する。  
+詳細なレビュー基準は `docs/dev-workflow/code-review.md` を参照する。
 
 ## 基本方針
 

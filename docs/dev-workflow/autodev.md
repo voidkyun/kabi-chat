@@ -51,29 +51,6 @@ Agentは以下を前提として理解すること。
 
 ---
 
-## ブランチ戦略
-
-- 1 Issue = 1 ブランチ
-- ブランチ名は以下の形式
-
-```
-
-{type}/{short-description}
-
-```
-
-例:
-
-```
-
-feature/add-user-settings
-fix/login-null-check
-refactor/api-layer-cleanup
-
-```
-
----
-
 ## 実装方針
 
 ### 基本
