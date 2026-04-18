@@ -49,6 +49,8 @@ ECS Fargate, RDS PostgreSQL, ALB, ECR は将来の拡張候補とし、アーリ
 - PostgreSQL は同一 host の private container network または localhost でのみ公開する
 - 外部公開は instance 上の reverse proxy を経由する
 - 公開 endpoint は HTTPS を前提とする
+- `main` への merge から prod deploy までは GitHub Actions を使って自動化する
+- GitHub Actions は release bundle を prod host に転送し、host 上の Docker Compose で `gateway`, `app`, `db` を更新する
 
 Docker Compose はローカル開発環境の再現用であり、クラウド環境とは compose file や secret の注入経路を分離します。アーリーアクセス中はローカル開発を主とし、クラウド `dev` は常設前提にしません。
 
@@ -79,6 +81,7 @@ MVP で最小限考慮する項目:
 - HTTPS 証明書の更新手段を持つ
 - DB の snapshot または dump backup 方針を持つ
 - instance 障害時に再作成できるよう Terraform と運用手順を分離する
+- GitHub Actions から prod host に到達する deploy credential と firewall 方針を定義する
 
 将来拡張:
 
@@ -87,4 +90,3 @@ MVP で最小限考慮する項目:
 - ALB や CDN の追加
 - CloudWatch ベースの監視
 - 監査ログ
-- CI/CD の自動化

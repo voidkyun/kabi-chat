@@ -6,6 +6,8 @@
 
 - `docker-compose.yml`
   - reverse proxy, backend, PostgreSQL を同一 host 上で起動する
+- `deploy.sh`
+  - prod compose の build / up をまとめて実行する
 - `Caddy.Dockerfile`
   - Frontend の build と Caddy image の組み立てをまとめる
 - `Caddyfile`
@@ -25,8 +27,7 @@
 
 ```bash
 cp infra/deploy/prod/.env.example infra/deploy/prod/.env
-docker compose -f infra/deploy/prod/docker-compose.yml --env-file infra/deploy/prod/.env build
-docker compose -f infra/deploy/prod/docker-compose.yml --env-file infra/deploy/prod/.env up -d
+sh infra/deploy/prod/deploy.sh
 ```
 
 `.env.example` で構文確認だけしたい場合は以下を使います。
@@ -41,3 +42,4 @@ DEPLOY_ENV_FILE=.env.example docker compose -f infra/deploy/prod/docker-compose.
 - TLS 証明書は Caddy が自動更新します
 - backup は `POSTGRES_USER` と `POSTGRES_DB` を export した上で `sh infra/deploy/prod/backup-postgres.sh` を実行します
 - `DJANGO_ALLOWED_HOSTS`, `DJANGO_CSRF_TRUSTED_ORIGINS`, `AUTH_FRONTEND_CALLBACK_URL`, `DISCORD_REDIRECT_URI` は同じ domain に揃えます
+- GitHub Actions からの自動 deploy は `docs/dev-workflow/prod-deploy.md` を参照します
