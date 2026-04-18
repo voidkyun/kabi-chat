@@ -3,7 +3,9 @@ FROM node:22-alpine AS frontend-build
 WORKDIR /frontend
 
 COPY frontend/package.json frontend/package-lock.json ./
-RUN npm ci
+# Run install scripts in the foreground to avoid esbuild ETXTBSY failures
+# observed on some Docker/overlayfs hosts during `npm ci`.
+RUN npm ci --foreground-scripts
 
 COPY frontend/ ./
 ARG VITE_API_BASE_URL=
