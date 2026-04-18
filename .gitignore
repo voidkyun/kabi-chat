@@ -1,6 +1,8 @@
 .DS_Store
 .env
 .env.local
+.local*/
+*.local*
 
 # Node / frontend
 frontend/node_modules/
@@ -15,9 +17,13 @@ backend/**/*.pyc
 
 # Terraform / infra
 infra/terraform/.terraform/
+infra/terraform/**/.terraform/
+infra/terraform/**/.terraform.lock.hcl
 infra/terraform/**/*.tfstate
 infra/terraform/**/*.tfstate.*
 infra/terraform/**/*.tfplan
+infra/terraform/**/tfplan
+infra/terraform/**/terraform.tfvars
 infra/deploy/prod/backups/
 
 # Editor / IDE
