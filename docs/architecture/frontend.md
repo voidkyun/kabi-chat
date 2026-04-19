@@ -40,7 +40,7 @@ Frontend の状態は以下に分離します。
 - TeX 描画は KaTeX を既定とする
 - raw モードではレンダリングせず入力文字列をそのまま表示する
 - view モードでは Markdown を HTML 化し、その中の数式を描画する
-- MathJax fallback は将来拡張として扱う
+- KaTeX で扱えない構文は限定的に MathJax fallback で補完する
 
 レンダリング負荷を抑えるため、message 再描画は必要最小限に限定する前提で設計します。
 
