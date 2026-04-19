@@ -275,7 +275,6 @@ button {
 
 .message-card__body {
   margin-top: 14px;
-  white-space: pre-wrap;
   word-break: break-word;
 }
 
@@ -285,6 +284,96 @@ button {
   border-radius: 14px;
   background: #17302a;
   color: #f5f1e7;
+}
+
+.message-markdown > :first-child {
+  margin-top: 0;
+}
+
+.message-markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.message-markdown p,
+.message-markdown ul,
+.message-markdown ol,
+.message-markdown blockquote,
+.message-markdown pre,
+.message-markdown table {
+  margin: 0 0 14px;
+}
+
+.message-markdown ul,
+.message-markdown ol {
+  padding-left: 1.4rem;
+}
+
+.message-markdown li + li {
+  margin-top: 6px;
+}
+
+.message-markdown a {
+  color: var(--accent-strong);
+}
+
+.message-markdown blockquote {
+  padding-left: 16px;
+  border-left: 3px solid rgba(198, 107, 61, 0.35);
+  color: var(--text-muted);
+}
+
+.message-markdown code {
+  padding: 0.1em 0.35em;
+  border-radius: 10px;
+  background: rgba(23, 48, 42, 0.08);
+  font-size: 0.95em;
+}
+
+.message-markdown pre {
+  overflow: auto;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(23, 48, 42, 0.06);
+}
+
+.message-markdown pre code {
+  padding: 0;
+  background: transparent;
+}
+
+.message-markdown table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.message-markdown th,
+.message-markdown td {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.message-markdown th {
+  background: rgba(23, 48, 42, 0.06);
+}
+
+.markdown-math {
+  display: inline-block;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  vertical-align: middle;
+}
+
+.markdown-math--display {
+  display: block;
+  margin: 18px 0;
+}
+
+.markdown-math__source {
+  display: inline-block;
+  padding: 0.2em 0.45em;
 }
 
 .composer {
