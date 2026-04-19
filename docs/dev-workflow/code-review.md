@@ -132,6 +132,7 @@ userが存在しない場合のハンドリングを追加する
 - 重複指摘の統合
 - severity順に並べ替え
 - 修正要否の判断
+- merge 前に、レビュー完了と未解決 blocker の有無をユーザーへ明示する
 
 CI coverage gap や必要な check run の欠落も、merge を止めるべき事実であれば actionable finding として扱ってよい。
 

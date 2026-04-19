@@ -107,6 +107,7 @@ PRには必ず以下を含める。
 - 観点ごとにSubAgentをspawnする
 - 指摘はすべて解消または意図を説明する
 - follow-up PR を含め、main にマージする前のPRごとに必ず独立して実施する
+- merge 前に、レビュー完了・重大指摘の有無・残存 blocker をユーザーに明示する
 
 ---
 
@@ -120,6 +121,8 @@ PRには必ず以下を含める。
 - rollback可能である
 
 merge 判定では GitHub の check runs を source of truth として扱う。legacy status API が空または `pending` のままでも、必要な check run の完了状態を別途確認して判定する。
+
+Agent内部で merge 可能と判断しただけでは不十分であり、自己レビュー結果と merge blocker の有無をユーザーに明示するまでは merge してはならない。
 
 ---
 
