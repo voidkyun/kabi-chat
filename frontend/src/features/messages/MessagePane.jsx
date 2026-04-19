@@ -66,10 +66,10 @@ export function MessagePane() {
     <div className="message-pane">
       <div className="panel__header panel__header--message">
         <div>
-          <p className="eyebrow">Authenticated Main Screen</p>
+          <p className="eyebrow">Authenticated Chat</p>
           <h2>{title}</h2>
           <p className="panel__description">
-            message list と composer は同じ channel 選択に接続されています。
+            選択中 channel の履歴と composer を同じ導線で扱います。
           </p>
         </div>
       </div>
@@ -80,6 +80,9 @@ export function MessagePane() {
         ) : null}
         {server.messagesLoading ? <p className="status-copy">Loading messages...</p> : null}
         {server.messagesError ? <p className="inline-error">{server.messagesError}</p> : null}
+        {!server.messagesLoading && !server.messagesError && ui.selectedChannelId && server.messages.length === 0 ? (
+          <p className="status-copy">No messages yet. Post the first message to start the channel.</p>
+        ) : null}
         {server.messages.map((message) => {
           const mode = ui.viewModeByMessageId[message.id] === "raw" ? "raw" : "view";
           return (

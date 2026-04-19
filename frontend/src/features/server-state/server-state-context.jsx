@@ -1,4 +1,13 @@
-import { createContext, startTransition, useContext, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  startTransition,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import {
   demoChannels,
@@ -10,6 +19,25 @@ import { useAuth } from "../auth/auth-context";
 import { useUIState } from "../ui-state/ui-state-context";
 
 const ServerStateContext = createContext(null);
+
+function sortWorkspaces(rows) {
+  return [...rows].sort((left, right) => {
+    const nameResult = left.name.localeCompare(right.name, "ja");
+    if (nameResult !== 0) {
+      return nameResult;
+    }
+    return left.id - right.id;
+  });
+}
+
+function sortChannels(rows) {
+  return [...rows].sort((left, right) => {
+    if (left.workspace_id !== right.workspace_id) {
+      return left.workspace_id - right.workspace_id;
+    }
+    return left.id - right.id;
+  });
+}
 
 function createResourceState() {
   return {
@@ -26,12 +54,25 @@ export function ServerStateProvider({ children }) {
   const [channelsState, setChannelsState] = useState(createResourceState);
   const [messagesState, setMessagesState] = useState(createResourceState);
   const [macrosState, setMacrosState] = useState(createResourceState);
+  const [demoWorkspaceRows, setDemoWorkspaceRows] = useState(demoWorkspaces);
+  const [demoChannelRows, setDemoChannelRows] = useState(demoChannels);
   const [demoMessageRows, setDemoMessageRows] = useState(initialDemoMessages);
+  const [createWorkspaceError, setCreateWorkspaceError] = useState("");
+  const [createChannelError, setCreateChannelError] = useState("");
   const [submitError, setSubmitError] = useState("");
+  const [creatingWorkspace, setCreatingWorkspace] = useState(false);
+  const [creatingChannel, setCreatingChannel] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const selectedWorkspaceIdRef = useRef(ui.selectedWorkspaceId);
+
+  useEffect(() => {
+    selectedWorkspaceIdRef.current = ui.selectedWorkspaceId;
+  }, [ui.selectedWorkspaceId]);
 
   useEffect(() => {
     if (auth.mode !== "demo") {
+      setDemoWorkspaceRows(demoWorkspaces);
+      setDemoChannelRows(demoChannels);
       setDemoMessageRows(initialDemoMessages);
     }
   }, [auth.mode]);
@@ -39,7 +80,7 @@ export function ServerStateProvider({ children }) {
   useEffect(() => {
     if (auth.mode === "demo") {
       setWorkspacesState({
-        data: demoWorkspaces,
+        data: demoWorkspaceRows,
         error: "",
         loading: false,
       });
@@ -75,7 +116,7 @@ export function ServerStateProvider({ children }) {
     return () => {
       cancelled = true;
     };
-  }, [auth]);
+  }, [auth, demoWorkspaceRows]);
 
   useEffect(() => {
     const selectedExists = workspacesState.data.some(
@@ -99,7 +140,7 @@ export function ServerStateProvider({ children }) {
 
     if (auth.mode === "demo") {
       setChannelsState({
-        data: demoChannels.filter((channel) => channel.workspace_id === ui.selectedWorkspaceId),
+        data: demoChannelRows.filter((channel) => channel.workspace_id === ui.selectedWorkspaceId),
         error: "",
         loading: false,
       });
@@ -135,7 +176,7 @@ export function ServerStateProvider({ children }) {
     return () => {
       cancelled = true;
     };
-  }, [auth, ui.selectedWorkspaceId]);
+  }, [auth, demoChannelRows, ui.selectedWorkspaceId]);
 
   useEffect(() => {
     const selectedExists = channelsState.data.some(
@@ -262,6 +303,122 @@ export function ServerStateProvider({ children }) {
     };
   }, [auth, ui.selectedChannelId, ui.selectedWorkspaceId]);
 
+  const createWorkspace = useCallback(async ({ description, name }) => {
+    const trimmedName = name.trim();
+    const trimmedDescription = description.trim();
+
+    if (!trimmedName) {
+      return false;
+    }
+
+    setCreatingWorkspace(true);
+    setCreateWorkspaceError("");
+
+    try {
+      if (auth.mode === "demo") {
+        const nextWorkspace = {
+          id: Date.now(),
+          name: trimmedName,
+          description: trimmedDescription,
+        };
+        const nextWorkspaces = sortWorkspaces([...demoWorkspaceRows, nextWorkspace]);
+        setDemoWorkspaceRows(nextWorkspaces);
+        setWorkspacesState({
+          data: nextWorkspaces,
+          error: "",
+          loading: false,
+        });
+        ui.selectWorkspace(nextWorkspace.id);
+        return true;
+      }
+
+      const created = await auth.apiRequest("/workspaces/", {
+        method: "POST",
+        body: {
+          name: trimmedName,
+          description: trimmedDescription,
+        },
+      });
+      setWorkspacesState((current) => ({
+        ...current,
+        data: sortWorkspaces([...current.data, created]),
+      }));
+      ui.selectWorkspace(created.id);
+      return true;
+    } catch (workspaceError) {
+      setCreateWorkspaceError(workspaceError.message);
+      return false;
+    } finally {
+      setCreatingWorkspace(false);
+    }
+  }, [auth, demoWorkspaceRows, ui]);
+
+  const clearCreateWorkspaceError = useCallback(() => {
+    setCreateWorkspaceError("");
+  }, []);
+
+  const createChannel = useCallback(async ({ name, topic }) => {
+    const trimmedName = name.trim();
+    const trimmedTopic = topic.trim();
+    const workspaceId = ui.selectedWorkspaceId;
+
+    if (!trimmedName || !workspaceId) {
+      return false;
+    }
+
+    setCreatingChannel(true);
+    setCreateChannelError("");
+
+    try {
+      if (auth.mode === "demo") {
+        const nextChannel = {
+          id: Date.now(),
+          workspace_id: workspaceId,
+          name: trimmedName,
+          topic: trimmedTopic,
+        };
+        const nextChannels = sortChannels([...demoChannelRows, nextChannel]);
+        setDemoChannelRows(nextChannels);
+        setChannelsState({
+          data: nextChannels.filter((channel) => channel.workspace_id === workspaceId),
+          error: "",
+          loading: false,
+        });
+        ui.selectChannel(nextChannel.id);
+        return true;
+      }
+
+      const created = await auth.apiRequest("/channels/", {
+        method: "POST",
+        body: {
+          workspace_id: workspaceId,
+          name: trimmedName,
+          topic: trimmedTopic,
+        },
+      });
+      if (
+        selectedWorkspaceIdRef.current === workspaceId
+        && created.workspace_id === workspaceId
+      ) {
+        setChannelsState((current) => ({
+          ...current,
+          data: sortChannels([...current.data, created]),
+        }));
+        ui.selectChannel(created.id);
+      }
+      return true;
+    } catch (channelError) {
+      setCreateChannelError(channelError.message);
+      return false;
+    } finally {
+      setCreatingChannel(false);
+    }
+  }, [auth, demoChannelRows, ui]);
+
+  const clearCreateChannelError = useCallback(() => {
+    setCreateChannelError("");
+  }, []);
+
   const submitMessage = async () => {
     const body = ui.composerDraft.trim();
     if (!body || !ui.selectedChannelId) {
@@ -317,6 +474,14 @@ export function ServerStateProvider({ children }) {
     channels: channelsState.data,
     channelsError: channelsState.error,
     channelsLoading: channelsState.loading,
+    clearCreateChannelError,
+    clearCreateWorkspaceError,
+    createChannel,
+    createChannelError,
+    createWorkspace,
+    createWorkspaceError,
+    creatingChannel,
+    creatingWorkspace,
     macros: macrosState.data,
     macrosError: macrosState.error,
     macrosLoading: macrosState.loading,
@@ -331,7 +496,7 @@ export function ServerStateProvider({ children }) {
     workspaces: workspacesState.data,
     workspacesError: workspacesState.error,
     workspacesLoading: workspacesState.loading,
-  }), [channelsState.data, channelsState.error, channelsState.loading, macrosState.data, macrosState.error, macrosState.loading, messagesState.data, messagesState.error, messagesState.loading, selectedChannel, selectedWorkspace, submitError, submitting, workspacesState.data, workspacesState.error, workspacesState.loading]);
+  }), [channelsState.data, channelsState.error, channelsState.loading, clearCreateChannelError, clearCreateWorkspaceError, createChannel, createChannelError, createWorkspace, createWorkspaceError, creatingChannel, creatingWorkspace, macrosState.data, macrosState.error, macrosState.loading, messagesState.data, messagesState.error, messagesState.loading, selectedChannel, selectedWorkspace, submitError, submitting, workspacesState.data, workspacesState.error, workspacesState.loading]);
 
   return <ServerStateContext.Provider value={value}>{children}</ServerStateContext.Provider>;
 }

@@ -9,7 +9,7 @@ from .models import Channel
 class ChannelSerializer(serializers.ModelSerializer):
     workspace_id = serializers.PrimaryKeyRelatedField(
         source="workspace",
-        queryset=Workspace.objects.all(),
+        queryset=Workspace.objects.none(),
     )
     created_by = serializers.SerializerMethodField(read_only=True)
 
@@ -29,8 +29,19 @@ class ChannelSerializer(serializers.ModelSerializer):
     def get_created_by(self, obj):
         return serialize_user(obj.created_by)
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get("request")
+        if request is not None:
+            self.fields["workspace_id"].queryset = Workspace.objects.accessible_to(request.user)
+
     def validate_workspace_id(self, workspace):
         request = self.context["request"]
+        if self.instance is None:
+            if not workspace.can_manage(request.user):
+                raise serializers.ValidationError("You do not have permission to create channels in this workspace.")
+            return workspace
+
         if not workspace.has_member(request.user):
             raise serializers.ValidationError("You do not have access to this workspace.")
         return workspace

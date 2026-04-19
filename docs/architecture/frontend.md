@@ -2,13 +2,13 @@
 
 ## Summary
 
-Frontend は React ベースの SPA とし、npm をパッケージマネージャ兼ビルド実行基盤として利用します。主責務は、認証導線、workspace / channel / message の閲覧と投稿、raw/view 切替、Markdown + TeX 描画です。
+Frontend は React ベースの SPA とし、npm をパッケージマネージャ兼ビルド実行基盤として利用します。主責務は、認証導線、workspace の作成と選択、workspace owner 向け channel 作成、message の閲覧と投稿、raw/view 切替、Markdown + TeX 描画です。
 
 ## UI Responsibilities
 
 - Discord login を開始する認証導線を提供する
-- workspace 一覧と選択 UI を提供する
-- channel 一覧と選択 UI を提供する
+- workspace 一覧、作成、選択 UI を提供する
+- channel 一覧、workspace owner 向け作成、選択 UI を提供する
 - message 一覧表示と message 投稿 UI を提供する
 - message ごとの raw/view 切替を提供する
 - macro 一覧参照と必要最小限の編集 UI を提供する

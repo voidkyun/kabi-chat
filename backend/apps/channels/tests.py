@@ -50,12 +50,12 @@ def setup_clients():
 def test_channel_api_requires_workspace_access_and_owner_for_updates(setup_clients):
     owner_client, owner = setup_clients["owner"]
     member_client, member = setup_clients["member"]
-    outsider_client, outsider = setup_clients["outsider"]
+    outsider_client, _ = setup_clients["outsider"]
 
     workspace = create_workspace(owner=owner, name="Geometry")
     add_member(workspace, member)
 
-    create_response = member_client.post(
+    create_response = owner_client.post(
         reverse("channel-list"),
         {
             "workspace_id": workspace.id,
@@ -67,11 +67,27 @@ def test_channel_api_requires_workspace_access_and_owner_for_updates(setup_clien
 
     assert create_response.status_code == status.HTTP_201_CREATED
     channel_id = create_response.json()["id"]
-    assert create_response.json()["created_by"]["id"] == member.id
+    assert create_response.json()["created_by"]["id"] == owner.id
 
     list_response = owner_client.get(reverse("channel-list"), {"workspace_id": workspace.id})
     assert list_response.status_code == status.HTTP_200_OK
     assert [item["id"] for item in list_response.json()] == [channel_id]
+
+    member_create_response = member_client.post(
+        reverse("channel-list"),
+        {
+            "workspace_id": workspace.id,
+            "name": "member-created",
+            "topic": "Should be rejected",
+        },
+        format="json",
+    )
+    assert member_create_response.status_code == status.HTTP_400_BAD_REQUEST
+    assert member_create_response.json() == {
+        "workspace_id": [
+            "You do not have permission to create channels in this workspace."
+        ]
+    }
 
     outsider_response = outsider_client.post(
         reverse("channel-list"),
