@@ -73,7 +73,7 @@ export const demoMessages = [
     id: 2002,
     channel_id: 201,
     body:
-      "KaTeX fallback check:\n\n- table support via GFM\n- MathJax fallback via `\\\\unicode`\n\n| item | preview |\n| --- | --- |\n| alpha | $\\\\unicode{x03B1}$ |\n| matrix | $\\\\begin{bmatrix}1 & 2\\\\\\\\3 & 4\\\\end{bmatrix}$ |",
+      "KaTeX fallback check:\n\n- table support via GFM\n- MathJax fallback via `\\unicode`\n\n| item | preview |\n| --- | --- |\n| alpha | $\\unicode{x03B1}$ |\n| matrix | $\\begin{bmatrix}1 & 2\\\\\\\\3 & 4\\end{bmatrix}$ |",
     author: {
       id: 3,
       username: "math-reviewer",
