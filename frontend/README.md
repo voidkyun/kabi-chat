@@ -14,6 +14,8 @@ npm run build
 
 開発サーバーは `http://localhost:5173` で起動し、`/auth`、`/workspaces`、`/channels`、`/messages`、`/macros` を Backend (`http://localhost:8000`) に proxy します。
 
+GitHub Actions では `frontend/**` 変更時に `frontend-build` workflow が走り、`npm ci` と `npm run build` を実行します。現状のfrontend向けCIはこの build チェックが最小構成です。
+
 ## Directory Intent
 
 - `src/app/`
