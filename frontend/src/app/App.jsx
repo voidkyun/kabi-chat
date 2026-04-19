@@ -36,8 +36,8 @@ function MainScreen() {
     <div className="app-shell">
       <header className="topbar">
         <div>
-          <p className="eyebrow">Authenticated Workspace</p>
-          <h1>Kabi Chat SPA Skeleton</h1>
+          <p className="eyebrow">Authenticated Chat</p>
+          <h1>Kabi Chat</h1>
         </div>
         <div className="topbar-actions">
           <div className="user-chip">

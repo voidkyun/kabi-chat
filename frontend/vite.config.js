@@ -13,4 +13,9 @@ export default defineConfig({
       "/macros": "http://localhost:8000",
     },
   },
+  test: {
+    environment: "jsdom",
+    globals: true,
+    setupFiles: "./src/test/setup.js",
+  },
 });

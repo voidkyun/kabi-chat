@@ -2,19 +2,20 @@
 
 `frontend/` は React SPA を配置する領域です。
 
-現状は Vite + React ベースの SPA 初期構成を持ち、認証導線、認証後メイン画面骨格、message ごとの raw/view 切替、Markdown + TeX 描画を確認できます。
+現状は Vite + React ベースの SPA 初期構成を持ち、認証導線、認証後メイン画面、workspace の作成と選択、workspace owner 向け channel 作成、message 投稿、message ごとの raw/view 切替、Markdown + TeX 描画を確認できます。
 
 ## Commands
 
 ```bash
 npm install
+npm run test -- --run
 npm run dev
 npm run build
 ```
 
 開発サーバーは `http://localhost:5173` で起動し、`/auth`、`/workspaces`、`/channels`、`/messages`、`/macros` を Backend (`http://localhost:8000`) に proxy します。
 
-GitHub Actions では `frontend/**` 変更時に `frontend-build` workflow が走り、`npm ci` と `npm run build` を実行します。現状のfrontend向けCIはこの build チェックが最小構成です。
+GitHub Actions では `frontend/**` 変更時に `frontend-build` workflow が走り、`npm ci`、`npm run test -- --run`、`npm run build` を実行します。
 
 ## Directory Intent
 
