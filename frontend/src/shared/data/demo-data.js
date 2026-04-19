@@ -64,9 +64,24 @@ export const demoMessages = [
   {
     id: 2001,
     channel_id: 201,
-    body: "View mode では将来的に Markdown + TeX を描画する。",
+    body:
+      "# Rendering preview\n\ninline math: $e^{i\\pi}+1=0$\n\n$$\n\\int_0^\\infty e^{-x^2}\\,dx = \\frac{\\sqrt{\\pi}}{2}\n$$",
     author: demoUser,
     created_at: "2026-04-13T10:30:00+09:00",
+  },
+  {
+    id: 2002,
+    channel_id: 201,
+    body:
+      "KaTeX fallback check:\n\n- table support via GFM\n- MathJax fallback via `\\\\unicode`\n\n| item | preview |\n| --- | --- |\n| alpha | $\\\\unicode{x03B1}$ |\n| matrix | $\\\\begin{bmatrix}1 & 2\\\\\\\\3 & 4\\\\end{bmatrix}$ |",
+    author: {
+      id: 3,
+      username: "math-reviewer",
+      display_name: "Math Reviewer",
+      avatar_url: "",
+      discord_user_id: null,
+    },
+    created_at: "2026-04-13T10:42:00+09:00",
   },
 ];
 

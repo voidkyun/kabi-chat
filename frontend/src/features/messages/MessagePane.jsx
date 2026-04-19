@@ -1,7 +1,8 @@
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 
 import { useServerState } from "../server-state/server-state-context";
 import { useUIState } from "../ui-state/ui-state-context";
+import { MessageRenderer } from "../../shared/ui/MessageRenderer";
 
 function formatDate(value) {
   return new Intl.DateTimeFormat("ja-JP", {
@@ -12,16 +13,40 @@ function formatDate(value) {
   }).format(new Date(value));
 }
 
-function MessageBody({ messageId, body }) {
-  const ui = useUIState();
-  const mode = ui.viewModeByMessageId[messageId] === "raw" ? "raw" : "view";
-
+const MessageBody = memo(function MessageBody({ body, mode }) {
   if (mode === "raw") {
     return <pre className="message-card__body message-card__body--raw">{body}</pre>;
   }
 
-  return <div className="message-card__body">{body}</div>;
-}
+  return (
+    <div className="message-card__body">
+      <MessageRenderer body={body} />
+    </div>
+  );
+});
+
+const MessageCard = memo(function MessageCard({ message, mode, onToggleMode }) {
+  const rawMode = mode === "raw";
+
+  return (
+    <article className="message-card">
+      <header className="message-card__header">
+        <div>
+          <p className="message-card__author">{message.author.display_name}</p>
+          <p className="message-card__timestamp">{formatDate(message.created_at)}</p>
+        </div>
+        <button
+          className="mode-toggle"
+          type="button"
+          onClick={() => onToggleMode(message.id)}
+        >
+          {rawMode ? "Switch to view" : "Switch to raw"}
+        </button>
+      </header>
+      <MessageBody body={message.body} mode={mode} />
+    </article>
+  );
+});
 
 export function MessagePane() {
   const server = useServerState();
@@ -56,24 +81,14 @@ export function MessagePane() {
         {server.messagesLoading ? <p className="status-copy">Loading messages...</p> : null}
         {server.messagesError ? <p className="inline-error">{server.messagesError}</p> : null}
         {server.messages.map((message) => {
-          const rawMode = ui.viewModeByMessageId[message.id] === "raw";
+          const mode = ui.viewModeByMessageId[message.id] === "raw" ? "raw" : "view";
           return (
-            <article key={message.id} className="message-card">
-              <header className="message-card__header">
-                <div>
-                  <p className="message-card__author">{message.author.display_name}</p>
-                  <p className="message-card__timestamp">{formatDate(message.created_at)}</p>
-                </div>
-                <button
-                  className="mode-toggle"
-                  type="button"
-                  onClick={() => ui.toggleMessageMode(message.id)}
-                >
-                  {rawMode ? "Switch to view" : "Switch to raw"}
-                </button>
-              </header>
-              <MessageBody messageId={message.id} body={message.body} />
-            </article>
+            <MessageCard
+              key={message.id}
+              message={message}
+              mode={mode}
+              onToggleMode={ui.toggleMessageMode}
+            />
           );
         })}
       </div>
