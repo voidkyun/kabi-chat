@@ -1,4 +1,4 @@
-import { Children, Suspense, isValidElement, lazy, memo, useMemo } from "react";
+import { Children, Component, Suspense, isValidElement, lazy, memo, useMemo } from "react";
 
 import katex from "katex";
 import ReactMarkdown from "react-markdown";
@@ -7,6 +7,19 @@ import remarkMath from "remark-math";
 
 const MARKDOWN_PLUGINS = [remarkGfm, remarkMath];
 const LazyMathJaxFallback = lazy(() => import("./MathJaxFallback"));
+
+function readTextContent(node) {
+  if (typeof node === "string" || typeof node === "number") {
+    return String(node);
+  }
+  if (Array.isArray(node)) {
+    return node.map((child) => readTextContent(child)).join("");
+  }
+  if (isValidElement(node)) {
+    return readTextContent(node.props.children);
+  }
+  return "";
+}
 
 function trimTrailingNewline(value) {
   return value.replace(/\n$/, "");
@@ -22,6 +35,29 @@ function renderKatex(value, displayMode) {
     });
   } catch {
     return "";
+  }
+}
+
+class MathRenderBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      hasError: false,
+    };
+  }
+
+  static getDerivedStateFromError() {
+    return {
+      hasError: true,
+    };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <code className="markdown-math__source">{this.props.expression}</code>;
+    }
+
+    return this.props.children;
   }
 }
 
@@ -41,15 +77,17 @@ const MarkdownMath = memo(function MarkdownMath({ displayMode, value }) {
 
   return (
     <span className={displayMode ? "markdown-math markdown-math--display" : "markdown-math"}>
-      <Suspense fallback={<code className="markdown-math__source">{expression}</code>}>
-        <LazyMathJaxFallback displayMode={displayMode} expression={expression} />
-      </Suspense>
+      <MathRenderBoundary expression={expression}>
+        <Suspense fallback={<code className="markdown-math__source">{expression}</code>}>
+          <LazyMathJaxFallback displayMode={displayMode} expression={expression} />
+        </Suspense>
+      </MathRenderBoundary>
     </span>
   );
 });
 
 function MarkdownCode({ children, className, ...props }) {
-  const value = trimTrailingNewline(String(children));
+  const value = trimTrailingNewline(readTextContent(children));
   if (typeof className === "string" && className.includes("math-inline")) {
     return <MarkdownMath value={value} displayMode={false} />;
   }
