@@ -2,7 +2,7 @@
 
 ## 位置づけ
 
-この文書は `[autodev]` または `/autodev` 発火時に実行する skill を定義する。
+この文書は `[autodev]` または `autodev` skill の明示利用時に実行する skill を定義する。
 
 - 何を入力として受け取るか
 - どの成果物を作るか
@@ -30,7 +30,8 @@
 
 この skill が受け取る主な入力は以下。
 
-- `[autodev]` または `/autodev` を含むユーザー提案
+- `[autodev]` を含むユーザー提案
+- `autodev` skill の利用を明示したユーザー提案
 - 既存の Issue / Pull Request
 - 関連コードと既存ドキュメント
 - 変更対象に対応する検証導線
