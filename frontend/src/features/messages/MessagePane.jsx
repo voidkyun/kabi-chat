@@ -1,7 +1,12 @@
 import { useMemo } from "react";
+import ReactMarkdown from "react-markdown";
+import rehypeKatex from "rehype-katex";
+import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
 
 import { useServerState } from "../server-state/server-state-context";
 import { useUIState } from "../ui-state/ui-state-context";
+import "katex/dist/katex.min.css";
 
 function formatDate(value) {
   return new Intl.DateTimeFormat("ja-JP", {
@@ -20,7 +25,13 @@ function MessageBody({ messageId, body }) {
     return <pre className="message-card__body message-card__body--raw">{body}</pre>;
   }
 
-  return <div className="message-card__body">{body}</div>;
+  return (
+    <div className="message-card__body markdown-body">
+      <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>
+        {body}
+      </ReactMarkdown>
+    </div>
+  );
 }
 
 export function MessagePane() {

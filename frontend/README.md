@@ -3,6 +3,7 @@
 `frontend/` は React SPA を配置する領域です。
 
 現状は Vite + React ベースの SPA 初期構成を持ち、認証導線と認証後メイン画面骨格を確認できます。
+message は view/raw の 2 モードを持ち、view モードでは Markdown + TeX (KaTeX) を描画します。
 
 ## Commands
 
