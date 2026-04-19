@@ -31,6 +31,8 @@
 - performance reviewer
 - concurrency reviewer
 
+初回PR、修正PR、follow-up PR を区別せず、main にマージする前のPRごとにこのレビューを独立して実行する。
+
 ---
 
 ## 共通ルール
@@ -73,6 +75,8 @@
 - 重要分岐がカバーされているか
 - 回帰防止になっているか
 - failureケースが考慮されているか
+- 変更対象に対応するCIが存在するか
+- 対象PRで必要なCI / check run が実行されているか
 
 ---
 
@@ -129,6 +133,8 @@ userが存在しない場合のハンドリングを追加する
 - severity順に並べ替え
 - 修正要否の判断
 
+CI coverage gap や必要な check run の欠落も、merge を止めるべき事実であれば actionable finding として扱ってよい。
+
 ---
 
 ## mergeブロック条件
@@ -138,6 +144,7 @@ userが存在しない場合のハンドリングを追加する
 - critical または high の未解決指摘
 - テスト不足による不確実性
 - セキュリティリスク
+- 必要な check run の未完了または未実行
 
 ---
 
