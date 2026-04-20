@@ -116,6 +116,13 @@ def test_channel_api_requires_workspace_access_and_owner_for_updates(setup_clien
 
     assert Channel.objects.get(pk=channel_id).topic == "Updated by owner"
 
+    member_delete = member_client.delete(reverse("channel-detail", args=[channel_id]))
+    assert member_delete.status_code == status.HTTP_403_FORBIDDEN
+
+    owner_delete = owner_client.delete(reverse("channel-detail", args=[channel_id]))
+    assert owner_delete.status_code == status.HTTP_204_NO_CONTENT
+    assert Channel.objects.filter(pk=channel_id).count() == 0
+
 
 @pytest.mark.django_db
 def test_channel_list_rejects_non_integer_workspace_id(setup_clients):

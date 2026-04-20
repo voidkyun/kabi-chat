@@ -15,6 +15,29 @@ async function parseJson(response) {
   return JSON.parse(text);
 }
 
+function extractErrorMessage(payload, status) {
+  if (typeof payload?.detail === "string" && payload.detail) {
+    return payload.detail;
+  }
+
+  if (typeof payload?.error === "string" && payload.error) {
+    return payload.error;
+  }
+
+  if (payload && typeof payload === "object") {
+    for (const value of Object.values(payload)) {
+      if (typeof value === "string" && value) {
+        return value;
+      }
+      if (Array.isArray(value) && typeof value[0] === "string" && value[0]) {
+        return value[0];
+      }
+    }
+  }
+
+  return `Request failed with status ${status}`;
+}
+
 export class ApiError extends Error {
   constructor(message, status, payload) {
     super(message);
@@ -46,8 +69,7 @@ export async function requestJson(path, options = {}) {
   const payload = await parseJson(response);
 
   if (!response.ok) {
-    const message =
-      payload?.detail ?? payload?.error ?? `Request failed with status ${response.status}`;
+    const message = extractErrorMessage(payload, response.status);
     throw new ApiError(message, response.status, payload);
   }
 

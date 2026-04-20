@@ -1,14 +1,31 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "./auth-context";
+import {
+  getWorkspaceInviteTokenFromLocation,
+  loadPendingWorkspaceInviteToken,
+  persistPendingWorkspaceInviteToken,
+} from "../workspaces/invite-token";
 
 export function AuthScreen() {
   const auth = useAuth();
   const [tokenInput, setTokenInput] = useState("");
+  const hasPendingWorkspaceInvite = useMemo(
+    () => Boolean(getWorkspaceInviteTokenFromLocation() || loadPendingWorkspaceInviteToken()),
+    [],
+  );
   const canSubmitToken = useMemo(
     () => auth.status !== "loading" && tokenInput.trim().length > 0,
     [auth.status, tokenInput],
   );
+
+  useEffect(() => {
+    const inviteToken = getWorkspaceInviteTokenFromLocation();
+    if (!inviteToken) {
+      return;
+    }
+    persistPendingWorkspaceInviteToken(inviteToken);
+  }, []);
 
   const handleTokenSubmit = async (event) => {
     event.preventDefault();
@@ -24,6 +41,11 @@ export function AuthScreen() {
           React SPA の入口です。認証導線と、認証後に workspace / channel / message /
           TeX macro を並べるメイン画面骨格をここから確認できます。
         </p>
+        {hasPendingWorkspaceInvite ? (
+          <p className="status-copy">
+            workspace 招待を検出しました。ログイン後に参加処理を続行します。
+          </p>
+        ) : null}
 
         <div className="auth-actions">
           <button

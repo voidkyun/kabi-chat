@@ -41,7 +41,7 @@ class ChannelListCreateView(generics.ListCreateAPIView):
         serializer.save(created_by=self.request.user)
 
 
-class ChannelDetailView(generics.RetrieveUpdateAPIView):
+class ChannelDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ChannelSerializer
     permission_classes = [IsChannelWorkspaceMemberOrManager]
 

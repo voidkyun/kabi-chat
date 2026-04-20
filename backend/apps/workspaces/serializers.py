@@ -3,7 +3,7 @@ from rest_framework import serializers
 
 from apps.auth.services import serialize_user
 
-from .models import Workspace, WorkspaceMembership
+from .models import Workspace, WorkspaceInvite, WorkspaceMembership
 
 
 class WorkspaceSerializer(serializers.ModelSerializer):
@@ -83,3 +83,28 @@ class WorkspaceSerializer(serializers.ModelSerializer):
             if membership.role != role:
                 membership.role = role
                 membership.save(update_fields=["role"])
+
+
+class WorkspaceInviteSerializer(serializers.ModelSerializer):
+    created_by = serializers.SerializerMethodField(read_only=True)
+    accepted_by = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = WorkspaceInvite
+        fields = [
+            "id",
+            "created_by",
+            "accepted_by",
+            "expires_at",
+            "accepted_at",
+            "created_at",
+        ]
+        read_only_fields = fields
+
+    def get_created_by(self, obj):
+        return serialize_user(obj.created_by)
+
+    def get_accepted_by(self, obj):
+        if obj.accepted_by is None:
+            return None
+        return serialize_user(obj.accepted_by)

@@ -11,12 +11,20 @@ import {
 
 import {
   demoChannels,
-  demoMacros,
+  demoMacros as initialDemoMacros,
   demoMessages as initialDemoMessages,
   demoWorkspaces,
 } from "../../shared/data/demo-data";
 import { useAuth } from "../auth/auth-context";
 import { useUIState } from "../ui-state/ui-state-context";
+import {
+  buildWorkspaceInviteUrl,
+  clearPendingWorkspaceInviteToken,
+  getWorkspaceInviteTokenFromLocation,
+  loadPendingWorkspaceInviteToken,
+  persistPendingWorkspaceInviteToken,
+  stripWorkspaceInviteTokenFromLocation,
+} from "../workspaces/invite-token";
 
 const ServerStateContext = createContext(null);
 
@@ -47,6 +55,18 @@ function createResourceState() {
   };
 }
 
+function replaceRowById(rows, nextRow) {
+  const hasExisting = rows.some((row) => row.id === nextRow.id);
+  if (!hasExisting) {
+    return [...rows, nextRow];
+  }
+  return rows.map((row) => (row.id === nextRow.id ? nextRow : row));
+}
+
+function removeRowById(rows, rowId) {
+  return rows.filter((row) => row.id !== rowId);
+}
+
 export function ServerStateProvider({ children }) {
   const auth = useAuth();
   const ui = useUIState();
@@ -56,13 +76,28 @@ export function ServerStateProvider({ children }) {
   const [macrosState, setMacrosState] = useState(createResourceState);
   const [demoWorkspaceRows, setDemoWorkspaceRows] = useState(demoWorkspaces);
   const [demoChannelRows, setDemoChannelRows] = useState(demoChannels);
+  const [demoMacroRows, setDemoMacroRows] = useState(initialDemoMacros);
   const [demoMessageRows, setDemoMessageRows] = useState(initialDemoMessages);
   const [createWorkspaceError, setCreateWorkspaceError] = useState("");
+  const [updateWorkspaceError, setUpdateWorkspaceError] = useState("");
+  const [deleteWorkspaceError, setDeleteWorkspaceError] = useState("");
+  const [createWorkspaceInviteError, setCreateWorkspaceInviteError] = useState("");
   const [createChannelError, setCreateChannelError] = useState("");
+  const [updateChannelError, setUpdateChannelError] = useState("");
+  const [deleteChannelError, setDeleteChannelError] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [creatingWorkspace, setCreatingWorkspace] = useState(false);
+  const [updatingWorkspace, setUpdatingWorkspace] = useState(false);
+  const [deletingWorkspace, setDeletingWorkspace] = useState(false);
+  const [creatingWorkspaceInvite, setCreatingWorkspaceInvite] = useState(false);
   const [creatingChannel, setCreatingChannel] = useState(false);
+  const [updatingChannel, setUpdatingChannel] = useState(false);
+  const [deletingChannel, setDeletingChannel] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [workspaceInviteUrl, setWorkspaceInviteUrl] = useState("");
+  const [acceptingWorkspaceInvite, setAcceptingWorkspaceInvite] = useState(false);
+  const [workspaceInviteAcceptanceError, setWorkspaceInviteAcceptanceError] = useState("");
+  const [workspaceInviteAcceptanceMessage, setWorkspaceInviteAcceptanceMessage] = useState("");
   const selectedWorkspaceIdRef = useRef(ui.selectedWorkspaceId);
 
   useEffect(() => {
@@ -73,9 +108,22 @@ export function ServerStateProvider({ children }) {
     if (auth.mode !== "demo") {
       setDemoWorkspaceRows(demoWorkspaces);
       setDemoChannelRows(demoChannels);
+      setDemoMacroRows(initialDemoMacros);
       setDemoMessageRows(initialDemoMessages);
     }
   }, [auth.mode]);
+
+  useEffect(() => {
+    const tokenFromLocation = getWorkspaceInviteTokenFromLocation();
+    if (!tokenFromLocation) {
+      return;
+    }
+
+    persistPendingWorkspaceInviteToken(tokenFromLocation);
+    if (auth.status === "authenticated") {
+      stripWorkspaceInviteTokenFromLocation();
+    }
+  }, [auth.status]);
 
   useEffect(() => {
     if (auth.mode === "demo") {
@@ -117,6 +165,60 @@ export function ServerStateProvider({ children }) {
       cancelled = true;
     };
   }, [auth, demoWorkspaceRows]);
+
+  useEffect(() => {
+    if (auth.mode !== "api" || auth.status !== "authenticated") {
+      return;
+    }
+
+    const token = loadPendingWorkspaceInviteToken();
+    if (!token) {
+      return;
+    }
+
+    let cancelled = false;
+    setAcceptingWorkspaceInvite(true);
+    setWorkspaceInviteAcceptanceError("");
+    setWorkspaceInviteAcceptanceMessage("");
+    clearPendingWorkspaceInviteToken();
+    stripWorkspaceInviteTokenFromLocation();
+
+    auth
+      .apiRequest("/workspaces/invites/accept/", {
+        method: "POST",
+        body: { token },
+      })
+      .then((payload) => {
+        if (cancelled) {
+          return;
+        }
+        setWorkspacesState((current) => ({
+          ...current,
+          data: sortWorkspaces(replaceRowById(current.data, payload.workspace)),
+        }));
+        setWorkspaceInviteAcceptanceMessage(
+          payload.joined
+            ? `${payload.workspace.name} に参加しました。`
+            : `${payload.workspace.name} にはすでに参加しています。`,
+        );
+        ui.selectWorkspace(payload.workspace.id);
+      })
+      .catch((inviteError) => {
+        if (cancelled) {
+          return;
+        }
+        setWorkspaceInviteAcceptanceError(inviteError.message);
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setAcceptingWorkspaceInvite(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [auth.apiRequest, auth.mode, auth.status, ui.selectWorkspace]);
 
   useEffect(() => {
     const selectedExists = workspacesState.data.some(
@@ -245,7 +347,7 @@ export function ServerStateProvider({ children }) {
     }
 
     if (auth.mode === "demo") {
-      const rows = demoMacros.filter((macro) => {
+      const rows = demoMacroRows.filter((macro) => {
         if (macro.channel_id && macro.channel_id === ui.selectedChannelId) {
           return true;
         }
@@ -301,7 +403,7 @@ export function ServerStateProvider({ children }) {
     return () => {
       cancelled = true;
     };
-  }, [auth, ui.selectedChannelId, ui.selectedWorkspaceId]);
+  }, [auth, demoMacroRows, ui.selectedChannelId, ui.selectedWorkspaceId]);
 
   const createWorkspace = useCallback(async ({ description, name }) => {
     const trimmedName = name.trim();
@@ -356,6 +458,156 @@ export function ServerStateProvider({ children }) {
   const clearCreateWorkspaceError = useCallback(() => {
     setCreateWorkspaceError("");
   }, []);
+
+  const clearWorkspaceManagementState = useCallback(() => {
+    setUpdateWorkspaceError("");
+    setDeleteWorkspaceError("");
+    setCreateWorkspaceInviteError("");
+    setWorkspaceInviteUrl("");
+  }, []);
+
+  const clearWorkspaceInviteAcceptanceState = useCallback(() => {
+    setWorkspaceInviteAcceptanceError("");
+    setWorkspaceInviteAcceptanceMessage("");
+  }, []);
+
+  const updateWorkspace = useCallback(async ({ workspaceId, description, name }) => {
+    const trimmedName = name.trim();
+    const trimmedDescription = description.trim();
+
+    if (!trimmedName || !workspaceId) {
+      return false;
+    }
+
+    setUpdatingWorkspace(true);
+    setUpdateWorkspaceError("");
+
+    try {
+      if (auth.mode === "demo") {
+        const nextWorkspaces = sortWorkspaces(
+          demoWorkspaceRows.map((workspace) => (
+            workspace.id === workspaceId
+              ? { ...workspace, name: trimmedName, description: trimmedDescription }
+              : workspace
+          )),
+        );
+        setDemoWorkspaceRows(nextWorkspaces);
+        setWorkspacesState({
+          data: nextWorkspaces,
+          error: "",
+          loading: false,
+        });
+        return true;
+      }
+
+      const updated = await auth.apiRequest(`/workspaces/${workspaceId}/`, {
+        method: "PATCH",
+        body: {
+          name: trimmedName,
+          description: trimmedDescription,
+        },
+      });
+      setWorkspacesState((current) => ({
+        ...current,
+        data: sortWorkspaces(replaceRowById(current.data, updated)),
+      }));
+      return true;
+    } catch (workspaceError) {
+      setUpdateWorkspaceError(workspaceError.message);
+      return false;
+    } finally {
+      setUpdatingWorkspace(false);
+    }
+  }, [auth, demoWorkspaceRows]);
+
+  const deleteWorkspace = useCallback(async (workspaceId) => {
+    if (!workspaceId) {
+      return false;
+    }
+
+    setDeletingWorkspace(true);
+    setDeleteWorkspaceError("");
+
+    try {
+      if (auth.mode === "demo") {
+        const nextChannels = demoChannelRows.filter((channel) => channel.workspace_id !== workspaceId);
+        const deletedChannelIds = new Set(
+          demoChannelRows
+            .filter((channel) => channel.workspace_id === workspaceId)
+            .map((channel) => channel.id),
+        );
+        const nextWorkspaces = sortWorkspaces(
+          demoWorkspaceRows.filter((workspace) => workspace.id !== workspaceId),
+        );
+        setDemoWorkspaceRows(nextWorkspaces);
+        setDemoChannelRows(nextChannels);
+        setDemoMacroRows(
+          demoMacroRows.filter((macro) => {
+            if (macro.workspace_id === workspaceId) {
+              return false;
+            }
+            return !deletedChannelIds.has(macro.channel_id);
+          }),
+        );
+        setDemoMessageRows(
+          demoMessageRows.filter((message) => !deletedChannelIds.has(message.channel_id)),
+        );
+        setWorkspacesState({
+          data: nextWorkspaces,
+          error: "",
+          loading: false,
+        });
+        setChannelsState((current) => ({
+          ...current,
+          data: current.data.filter((channel) => channel.workspace_id !== workspaceId),
+        }));
+        return true;
+      }
+
+      await auth.apiRequest(`/workspaces/${workspaceId}/`, {
+        method: "DELETE",
+      });
+      setWorkspacesState((current) => ({
+        ...current,
+        data: sortWorkspaces(removeRowById(current.data, workspaceId)),
+      }));
+      return true;
+    } catch (workspaceError) {
+      setDeleteWorkspaceError(workspaceError.message);
+      return false;
+    } finally {
+      setDeletingWorkspace(false);
+    }
+  }, [auth, demoChannelRows, demoMacroRows, demoMessageRows, demoWorkspaceRows]);
+
+  const createWorkspaceInvite = useCallback(async (workspaceId) => {
+    if (!workspaceId) {
+      return "";
+    }
+
+    setCreatingWorkspaceInvite(true);
+    setCreateWorkspaceInviteError("");
+
+    try {
+      if (auth.mode === "demo") {
+        const inviteUrl = buildWorkspaceInviteUrl(`demo-${workspaceId}-${Date.now()}`);
+        setWorkspaceInviteUrl(inviteUrl);
+        return inviteUrl;
+      }
+
+      const created = await auth.apiRequest(`/workspaces/${workspaceId}/invites/`, {
+        method: "POST",
+      });
+      const inviteUrl = buildWorkspaceInviteUrl(created.invite_token);
+      setWorkspaceInviteUrl(inviteUrl);
+      return inviteUrl;
+    } catch (inviteError) {
+      setCreateWorkspaceInviteError(inviteError.message);
+      return "";
+    } finally {
+      setCreatingWorkspaceInvite(false);
+    }
+  }, [auth]);
 
   const createChannel = useCallback(async ({ name, topic }) => {
     const trimmedName = name.trim();
@@ -419,6 +671,106 @@ export function ServerStateProvider({ children }) {
     setCreateChannelError("");
   }, []);
 
+  const clearChannelManagementState = useCallback(() => {
+    setUpdateChannelError("");
+    setDeleteChannelError("");
+  }, []);
+
+  const updateChannel = useCallback(async ({ channelId, name, topic }) => {
+    const trimmedName = name.trim();
+    const trimmedTopic = topic.trim();
+
+    if (!trimmedName || !channelId) {
+      return false;
+    }
+
+    setUpdatingChannel(true);
+    setUpdateChannelError("");
+
+    try {
+      if (auth.mode === "demo") {
+        const nextChannels = sortChannels(
+          demoChannelRows.map((channel) => (
+            channel.id === channelId
+              ? { ...channel, name: trimmedName, topic: trimmedTopic }
+              : channel
+          )),
+        );
+        setDemoChannelRows(nextChannels);
+        setChannelsState({
+          data: nextChannels.filter((channel) => channel.workspace_id === ui.selectedWorkspaceId),
+          error: "",
+          loading: false,
+        });
+        return true;
+      }
+
+      const updated = await auth.apiRequest(`/channels/${channelId}/`, {
+        method: "PATCH",
+        body: {
+          name: trimmedName,
+          topic: trimmedTopic,
+        },
+      });
+      if (selectedWorkspaceIdRef.current === updated.workspace_id) {
+        setChannelsState((current) => ({
+          ...current,
+          data: sortChannels(replaceRowById(current.data, updated)),
+        }));
+      }
+      return true;
+    } catch (channelError) {
+      setUpdateChannelError(channelError.message);
+      return false;
+    } finally {
+      setUpdatingChannel(false);
+    }
+  }, [auth, demoChannelRows, ui.selectedWorkspaceId]);
+
+  const deleteChannel = useCallback(async (channelId) => {
+    if (!channelId) {
+      return false;
+    }
+
+    setDeletingChannel(true);
+    setDeleteChannelError("");
+
+    try {
+      if (auth.mode === "demo") {
+        const nextChannels = sortChannels(
+          demoChannelRows.filter((channel) => channel.id !== channelId),
+        );
+        setDemoChannelRows(nextChannels);
+        setDemoMacroRows(
+          demoMacroRows.filter((macro) => macro.channel_id !== channelId),
+        );
+        setDemoMessageRows(
+          demoMessageRows.filter((message) => message.channel_id !== channelId),
+        );
+        setChannelsState({
+          data: nextChannels.filter((channel) => channel.workspace_id === ui.selectedWorkspaceId),
+          error: "",
+          loading: false,
+        });
+        return true;
+      }
+
+      await auth.apiRequest(`/channels/${channelId}/`, {
+        method: "DELETE",
+      });
+      setChannelsState((current) => ({
+        ...current,
+        data: sortChannels(removeRowById(current.data, channelId)),
+      }));
+      return true;
+    } catch (channelError) {
+      setDeleteChannelError(channelError.message);
+      return false;
+    } finally {
+      setDeletingChannel(false);
+    }
+  }, [auth, demoChannelRows, demoMacroRows, demoMessageRows, ui.selectedWorkspaceId]);
+
   const submitMessage = async () => {
     const body = ui.composerDraft.trim();
     if (!body || !ui.selectedChannelId) {
@@ -471,17 +823,30 @@ export function ServerStateProvider({ children }) {
   );
 
   const value = useMemo(() => ({
+    acceptingWorkspaceInvite,
     channels: channelsState.data,
     channelsError: channelsState.error,
     channelsLoading: channelsState.loading,
     clearCreateChannelError,
     clearCreateWorkspaceError,
+    clearChannelManagementState,
+    clearWorkspaceInviteAcceptanceState,
+    clearWorkspaceManagementState,
     createChannel,
     createChannelError,
+    createWorkspaceInvite,
+    createWorkspaceInviteError,
     createWorkspace,
     createWorkspaceError,
     creatingChannel,
+    creatingWorkspaceInvite,
     creatingWorkspace,
+    deleteChannel,
+    deleteChannelError,
+    deleteWorkspace,
+    deleteWorkspaceError,
+    deletingChannel,
+    deletingWorkspace,
     macros: macrosState.data,
     macrosError: macrosState.error,
     macrosLoading: macrosState.loading,
@@ -493,10 +858,19 @@ export function ServerStateProvider({ children }) {
     submitError,
     submitMessage,
     submitting,
+    updateChannel,
+    updateChannelError,
+    updateWorkspace,
+    updateWorkspaceError,
+    updatingChannel,
+    updatingWorkspace,
+    workspaceInviteAcceptanceError,
+    workspaceInviteAcceptanceMessage,
+    workspaceInviteUrl,
     workspaces: workspacesState.data,
     workspacesError: workspacesState.error,
     workspacesLoading: workspacesState.loading,
-  }), [channelsState.data, channelsState.error, channelsState.loading, clearCreateChannelError, clearCreateWorkspaceError, createChannel, createChannelError, createWorkspace, createWorkspaceError, creatingChannel, creatingWorkspace, macrosState.data, macrosState.error, macrosState.loading, messagesState.data, messagesState.error, messagesState.loading, selectedChannel, selectedWorkspace, submitError, submitting, workspacesState.data, workspacesState.error, workspacesState.loading]);
+  }), [acceptingWorkspaceInvite, channelsState.data, channelsState.error, channelsState.loading, clearChannelManagementState, clearCreateChannelError, clearCreateWorkspaceError, clearWorkspaceInviteAcceptanceState, clearWorkspaceManagementState, createChannel, createChannelError, createWorkspace, createWorkspaceError, createWorkspaceInvite, createWorkspaceInviteError, creatingChannel, creatingWorkspace, creatingWorkspaceInvite, deleteChannel, deleteChannelError, deleteWorkspace, deleteWorkspaceError, deletingChannel, deletingWorkspace, macrosState.data, macrosState.error, macrosState.loading, messagesState.data, messagesState.error, messagesState.loading, selectedChannel, selectedWorkspace, submitError, submitting, updateChannel, updateChannelError, updateWorkspace, updateWorkspaceError, updatingChannel, updatingWorkspace, workspaceInviteAcceptanceError, workspaceInviteAcceptanceMessage, workspaceInviteUrl, workspacesState.data, workspacesState.error, workspacesState.loading]);
 
   return <ServerStateContext.Provider value={value}>{children}</ServerStateContext.Provider>;
 }
