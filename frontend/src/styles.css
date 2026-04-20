@@ -138,12 +138,19 @@ button {
   background: rgba(255, 255, 255, 0.58);
 }
 
+.inline-form__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .inline-form__input--textarea {
   min-height: 5.5rem;
 }
 
 .primary-button,
 .secondary-button,
+.danger-button,
 .mode-toggle {
   border: 0;
   border-radius: 999px;
@@ -160,20 +167,29 @@ button {
 }
 
 .secondary-button,
+.danger-button,
 .mode-toggle {
   background: rgba(255, 255, 255, 0.8);
   color: #183630;
   border: 1px solid var(--border);
 }
 
+.danger-button {
+  background: rgba(154, 47, 47, 0.12);
+  color: var(--danger);
+  border-color: rgba(154, 47, 47, 0.28);
+}
+
 .primary-button:hover,
 .secondary-button:hover,
+.danger-button:hover,
 .mode-toggle:hover {
   transform: translateY(-1px);
 }
 
 .primary-button:disabled,
-.secondary-button:disabled {
+.secondary-button:disabled,
+.danger-button:disabled {
   cursor: not-allowed;
   opacity: 0.6;
 }
@@ -458,7 +474,8 @@ button {
   .topbar,
   .auth-actions,
   .composer__footer,
-  .topbar-actions {
+  .topbar-actions,
+  .inline-form__actions {
     flex-direction: column;
     align-items: stretch;
   }

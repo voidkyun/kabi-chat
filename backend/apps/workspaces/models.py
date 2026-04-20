@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 
 class WorkspaceQuerySet(models.QuerySet):
@@ -69,3 +70,39 @@ class WorkspaceMembership(models.Model):
 
     def __str__(self) -> str:
         return f"{self.workspace_id}:{self.user_id}:{self.role}"
+
+
+class WorkspaceInvite(models.Model):
+    workspace = models.ForeignKey(
+        Workspace,
+        on_delete=models.CASCADE,
+        related_name="workspace_invites",
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="created_workspace_invites",
+    )
+    token_digest = models.CharField(max_length=64, unique=True)
+    expires_at = models.DateTimeField()
+    accepted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="accepted_workspace_invites",
+    )
+    accepted_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "id"]
+
+    def __str__(self) -> str:
+        return f"{self.workspace_id}:{self.pk}"
+
+    def is_expired(self) -> bool:
+        return timezone.now() >= self.expires_at
+
+    def is_consumed(self) -> bool:
+        return self.accepted_at is not None

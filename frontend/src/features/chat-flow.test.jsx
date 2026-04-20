@@ -82,6 +82,8 @@ function buildChannel({ id, name, workspaceId, createdBy }) {
 
 afterEach(() => {
   authState.current = null;
+  window.sessionStorage.clear();
+  window.history.replaceState({}, document.title, "/");
   vi.restoreAllMocks();
 });
 
@@ -343,5 +345,132 @@ describe("minimum chat flow", () => {
 
     await screen.findByRole("button", { name: /#beta-room/ });
     expect(screen.queryByRole("button", { name: /#alpha-room/ })).not.toBeInTheDocument();
+  });
+
+  it("accepts a pending workspace invite after authentication", async () => {
+    const user = buildUser();
+    const workspace = buildWorkspace({ id: 501, name: "Invited Room", owner: buildUser({ id: 9 }) });
+
+    window.sessionStorage.setItem("kabi-chat.pending-workspace-invite", "invite-token");
+
+    authState.current = {
+      apiRequest: vi.fn(async (path, options = {}) => {
+        if (path === "/workspaces/") {
+          return [];
+        }
+        if (path === "/workspaces/invites/accept/" && options.method === "POST") {
+          return {
+            joined: true,
+            workspace,
+          };
+        }
+        if (path === `/channels/?workspace_id=${workspace.id}`) {
+          return [];
+        }
+        if (path === `/macros/?effective=true&workspace_id=${workspace.id}`) {
+          return [];
+        }
+        throw new Error(`Unexpected API request: ${path}`);
+      }),
+      mode: "api",
+      status: "authenticated",
+      user,
+    };
+
+    renderChatFlow(<WorkspaceList />);
+
+    await screen.findByText("Invited Room に参加しました。");
+    expect(screen.getByRole("button", { name: /Invited Room/ })).toBeInTheDocument();
+    expect(window.sessionStorage.getItem("kabi-chat.pending-workspace-invite")).toBeNull();
+  });
+
+  it("clears the pending invite token before the acceptance request resolves", async () => {
+    const user = buildUser();
+    const workspace = buildWorkspace({ id: 601, name: "Async Invite", owner: buildUser({ id: 9 }) });
+    const deferred = createDeferred();
+
+    window.sessionStorage.setItem("kabi-chat.pending-workspace-invite", "invite-token");
+
+    authState.current = {
+      apiRequest: vi.fn(async (path, options = {}) => {
+        if (path === "/workspaces/") {
+          return [];
+        }
+        if (path === "/workspaces/invites/accept/" && options.method === "POST") {
+          return deferred.promise;
+        }
+        if (path === `/channels/?workspace_id=${workspace.id}`) {
+          return [];
+        }
+        if (path === `/macros/?effective=true&workspace_id=${workspace.id}`) {
+          return [];
+        }
+        throw new Error(`Unexpected API request: ${path}`);
+      }),
+      mode: "api",
+      status: "authenticated",
+      user,
+    };
+
+    renderChatFlow(<WorkspaceList />);
+
+    await waitFor(() => {
+      expect(window.sessionStorage.getItem("kabi-chat.pending-workspace-invite")).toBeNull();
+    });
+
+    await act(async () => {
+      deferred.resolve({
+        joined: true,
+        workspace,
+      });
+      await deferred.promise;
+    });
+
+    await screen.findByText("Async Invite に参加しました。");
+  });
+
+  it("updates and deletes the selected workspace and channel in demo mode", async () => {
+    authState.current = {
+      apiRequest: vi.fn(),
+      mode: "demo",
+      status: "authenticated",
+      user: buildUser(),
+    };
+
+    const actor = userEvent.setup();
+
+    renderChatFlow(
+      <>
+        <WorkspaceList />
+        <ChannelList />
+        <SelectionProbe />
+      </>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("selected-workspace")).toHaveTextContent("1");
+      expect(screen.getByTestId("selected-channel")).toHaveTextContent("101");
+    });
+
+    await actor.clear(screen.getByLabelText("Selected workspace"));
+    await actor.type(screen.getByLabelText("Selected workspace"), "Kabi Core Updated");
+    await actor.click(screen.getByRole("button", { name: "Save workspace" }));
+    expect(screen.getByRole("button", { name: /Kabi Core Updated/ })).toBeInTheDocument();
+
+    await actor.clear(screen.getByLabelText("Selected channel"));
+    await actor.type(screen.getByLabelText("Selected channel"), "general-updated");
+    await actor.click(screen.getByRole("button", { name: "Save channel" }));
+    expect(screen.getByRole("button", { name: /#general-updated/ })).toBeInTheDocument();
+
+    await actor.click(screen.getByRole("button", { name: "Delete channel" }));
+    await waitFor(() => {
+      expect(screen.getByTestId("selected-channel")).toHaveTextContent("102");
+    });
+
+    await actor.click(screen.getByRole("button", { name: "Delete workspace" }));
+    await waitFor(() => {
+      expect(screen.getByTestId("selected-workspace")).toHaveTextContent("2");
+    });
+    expect(screen.queryByRole("button", { name: /Kabi Core Updated/ })).not.toBeInTheDocument();
   });
 });

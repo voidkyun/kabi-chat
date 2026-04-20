@@ -11,6 +11,7 @@ Backend は以下を担当します。
 - Discord OAuth2 callback の受信とユーザー同定
 - JWT の発行、更新、失効
 - workspace / channel / message / macro の CRUD
+- 短命 URL ベースの workspace invite 発行と受諾
 - 権限制御
 - PostgreSQL への永続化
 
@@ -25,7 +26,7 @@ Markdown や TeX の最終レンダリングは Frontend の責務とし、Backe
   - JWT 発行と refresh
   - current user 取得
 - `workspaces`
-  - workspace 作成、取得、参加権限
+  - workspace 作成、取得、更新、削除、参加権限、invite 発行
 - `channels`
   - workspace 配下の channel 管理
 - `messages`
@@ -80,11 +81,15 @@ Markdown や TeX の最終レンダリングは Frontend の責務とし、Backe
   - `POST /workspaces/`
   - `GET /workspaces/{id}/`
   - `PATCH /workspaces/{id}/`
+  - `DELETE /workspaces/{id}/`
+  - `POST /workspaces/{id}/invites/`
+  - `POST /workspaces/invites/accept/`
 - Channel API
   - `GET /channels/?workspace_id={workspace_id}`
   - `POST /channels/`
   - `GET /channels/{id}/`
   - `PATCH /channels/{id}/`
+  - `DELETE /channels/{id}/`
 - Message API
   - `GET /messages/?channel_id={channel_id}`
   - `POST /messages/`
@@ -123,8 +128,10 @@ refresh token を `HttpOnly` cookie で扱う前提の `POST /auth/token/refresh
 MVP の最低限の権限制御は以下です。
 
 - workspace member は workspace / channel / message / scoped macro を参照できる
-- workspace owner は workspace 更新、channel 更新、workspace / channel macro 更新を行える
+- workspace owner は workspace 更新、workspace invite 発行、channel 更新、workspace / channel macro 更新を行える
 - global macro の更新は staff user に限定する
+
+workspace invite は短命かつ single-use の token を前提とし、token 本体は保存せず digest のみを DB に保持します。invite を開いたユーザーがすでに member の場合は idempotent に成功を返し、未参加ユーザーが初回受諾した時点で member として追加して invite を消費します。
 
 ## Local Development
 

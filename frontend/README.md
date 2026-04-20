@@ -2,7 +2,7 @@
 
 `frontend/` は React SPA を配置する領域です。
 
-現状は Vite + React ベースの SPA 初期構成を持ち、認証導線、認証後メイン画面、workspace の作成と選択、workspace owner 向け channel 作成、message 投稿、message ごとの raw/view 切替、Markdown + TeX 描画を確認できます。
+現状は Vite + React ベースの SPA 初期構成を持ち、認証導線、認証後メイン画面、workspace / channel の CRUD、workspace owner 向け短命 URL 招待、message 投稿、message ごとの raw/view 切替、Markdown + TeX 描画を確認できます。
 
 ## Commands
 
