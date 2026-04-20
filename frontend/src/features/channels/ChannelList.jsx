@@ -33,7 +33,6 @@ export function ChannelList() {
     server.selectedChannel?.name,
     server.selectedChannel?.topic,
   ]);
-
   const handleSubmit = async (event) => {
     event.preventDefault();
     const created = await server.createChannel({ name, topic });
@@ -161,7 +160,6 @@ export function ChannelList() {
           ) : null}
         </form>
       ) : null}
-
       {server.channels.map((channel) => {
         const selected = channel.id === ui.selectedChannelId;
         return (

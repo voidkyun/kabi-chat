@@ -143,7 +143,6 @@ button {
   gap: 10px;
   flex-wrap: wrap;
 }
-
 .inline-form__input--textarea {
   min-height: 5.5rem;
 }

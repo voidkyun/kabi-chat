@@ -75,7 +75,6 @@ export function WorkspaceList() {
       {server.workspaceInviteAcceptanceError ? (
         <p className="inline-error">{server.workspaceInviteAcceptanceError}</p>
       ) : null}
-
       <form className="inline-form" onSubmit={handleSubmit}>
         <label className="inline-form__label" htmlFor="workspace-name">
           New workspace
@@ -186,7 +185,6 @@ export function WorkspaceList() {
           ) : null}
         </form>
       ) : null}
-
       {server.workspaces.length === 0 ? (
         <p className="status-copy">Create a workspace to start the chat flow.</p>
       ) : null}
